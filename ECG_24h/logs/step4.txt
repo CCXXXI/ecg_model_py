@@ -1,0 +1,8 @@
+  0%|          | 0/104492 [00:00<?, ?it/s] 32%|███▏      | 33000/104492 [00:00<00:00, 329248.29it/s] 65%|██████▍   | 67600/104492 [00:00<00:00, 338949.27it/s] 97%|█████████▋| 101500/104492 [00:00<00:00, 198285.91it/s]100%|█████████▉| 104400/104492 [00:02<00:00, 44160.28it/s] 
+  0%|          | 0/91128 [00:00<?, ?it/s] 49%|████▉     | 44700/91128 [00:00<00:00, 446900.27it/s] 98%|█████████▊| 89400/91128 [00:00<00:00, 213941.84it/s]Traceback (most recent call last):
+  File "analyze_24h_xintiao250HZ.py", line 685, in <module>
+    my_beats = load_mybeats(name,load_dir)
+  File "analyze_24h_xintiao250HZ.py", line 196, in load_mybeats
+    fin = open(os.path.join(load_dir,data_name),encoding='utf-8')
+FileNotFoundError: [Errno 2] No such file or directory: '/root/24-ecg/24hMybeat/3_mybeats_withlabel_v1.3.txt'
+100%|█████████▉| 91100/91128 [00:01<00:00, 77223.25it/s] 
