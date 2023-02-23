@@ -6,11 +6,12 @@
     2.划分数据集
 @ author: javis
 """
-import os, torch
 import numpy as np
-from config import config
 import scipy.signal as signal
+import torch
 import torch.nn.functional as F
+
+from config import config
 
 # 保证每次划分数据一致
 np.random.seed(41)
@@ -96,7 +97,6 @@ def U_net_peak(
     device="cpu",
 ):
     # 提取U-net波群信息
-    from dataset import transform
 
     x = data.copy()
     if not input_fs == 240:

@@ -9,10 +9,9 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import welch, periodogram
 
-from .datautils import MAD, rolling_mean, outliers_iqr_method, outliers_modified_z
-from .filtering import quotient_filter
 import heartpy as hp
-
+from .datautils import MAD, outliers_iqr_method, outliers_modified_z
+from .filtering import quotient_filter
 
 __all__ = [
     "calc_rr",

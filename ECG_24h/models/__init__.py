@@ -5,24 +5,13 @@
 @ author: javis
 """
 
-from .resnet import resnet18, resnet34, resnet50, resnet101
-from .resnet_rv1 import resnet34_rv1
+from .ECGNet import ECGNet
+from .MLGCN import MLGCN_resnet34_cbam
 from .ResNeXt import ResNeXt29_conv3_cd8, ResNeXt32_conv7_cd8
 from .SE_ECGNet import SE_ECGNet
-from .cbam import CBAM
-from .resnet_cbam import (
-    resnet18_cbam,
-    resnet34_cbam,
-    resnet50_cbam,
-    resnet34_cbam_drp3,
-    resnet34_cbam_ch9,
-    resnet34_cbam_ch1,
-)
-from .MLGCN import MLGCN_resnet34_cbam
-from .Supcon import Supcon_resnet34_cbam
-from .resnet_cbam_sma import resnet34_cbam_sma5
-from .ECGNet import ECGNet
 from .SE_ECGNet import SE_ECGNet
+from .Supcon import Supcon_resnet34_cbam
+from .cbam import CBAM
 from .rescbam_delg import (
     resnet34_cbam_global,
     resnet34_cbam_global_nw,
@@ -40,3 +29,14 @@ from .rescbam_delg import (
     resnet34_cbam_delg_5,
     resnet34_cbam_delg_6,
 )
+from .resnet import resnet18, resnet34, resnet50, resnet101
+from .resnet_cbam import (
+    resnet18_cbam,
+    resnet34_cbam,
+    resnet50_cbam,
+    resnet34_cbam_drp3,
+    resnet34_cbam_ch9,
+    resnet34_cbam_ch1,
+)
+from .resnet_cbam_sma import resnet34_cbam_sma5
+from .resnet_rv1 import resnet34_rv1

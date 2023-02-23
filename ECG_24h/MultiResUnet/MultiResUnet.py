@@ -2,18 +2,6 @@
 # coding: utf-8
 
 # In[1]:
-import pandas as pd
-import numpy as np
-import os
-import matplotlib.pyplot as plt
-import wfdb
-from random import shuffle
-from config import config
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
-import torch.nn.functional as F
-from IPython.display import Image
 import torch
 
 

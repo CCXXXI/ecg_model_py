@@ -2,8 +2,8 @@
 Functions for data filtering tasks.
 """
 
-from scipy.signal import butter, filtfilt, iirnotch, savgol_filter
 import numpy as np
+from scipy.signal import butter, filtfilt, iirnotch, savgol_filter
 
 from .datautils import MAD
 

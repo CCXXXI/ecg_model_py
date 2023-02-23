@@ -4,16 +4,17 @@
 
 @ author: javis
 """
-import pywt, os, copy
-import torch
+import math
+import os
+import random
+
 import numpy as np
 import pandas as pd
-from config import config
-from torch.utils.data import Dataset
-from sklearn.preprocessing import scale
+import torch
 from scipy import signal
-import random
-import math
+from torch.utils.data import Dataset
+
+from config import config
 
 
 def load_wordembedding(word_embedding_path, idx2name) -> np.ndarray:

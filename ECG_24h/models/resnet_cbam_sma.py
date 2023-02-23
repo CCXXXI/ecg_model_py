@@ -6,9 +6,8 @@
 """
 
 import torch.nn as nn
-import math
-from torch.nn import init
 from models.cbam import CBAM
+from torch.nn import init
 
 __all__ = ["resnet34_cbam_sma5"]
 

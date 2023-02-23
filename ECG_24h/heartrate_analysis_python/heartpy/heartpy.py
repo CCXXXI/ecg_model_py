@@ -2,16 +2,22 @@
 main module for HeartPy.
 """
 
-from datetime import datetime
-import time
-import os
 import sys
+import time
 
 import numpy as np
-from scipy.interpolate import UnivariateSpline
-from scipy.signal import butter, filtfilt, welch, periodogram, resample_poly, resample
 
+from . import config
 from . import exceptions
+from .analysis import (
+    calc_rr,
+    calc_rr_segment,
+    clean_rr_intervals,
+    calc_ts_measures,
+    calc_fd_measures,
+    calc_breathing,
+    calc_poincare,
+)
 from .datautils import (
     get_data,
     get_samplerate_mstimer,
@@ -20,14 +26,6 @@ from .datautils import (
     outliers_iqr_method,
     outliers_modified_z,
     load_exampledata,
-)
-from .preprocessing import (
-    scale_data,
-    scale_sections,
-    interpolate_clipping,
-    flip_signal,
-    enhance_peaks,
-    enhance_ecg_peaks,
 )
 from .filtering import (
     filter_signal,
@@ -41,21 +39,17 @@ from .peakdetection import (
     append_dict,
     fit_peaks,
     check_peaks,
-    check_binary_quality,
     interpolate_peaks,
 )
-from .visualizeutils import plotter, segment_plotter, plot_poincare, plot_breathing
-from .analysis import (
-    calc_rr,
-    calc_rr_segment,
-    clean_rr_intervals,
-    calc_ts_measures,
-    calc_fd_measures,
-    calc_breathing,
-    calc_poincare,
+from .preprocessing import (
+    scale_data,
+    scale_sections,
+    interpolate_clipping,
+    flip_signal,
+    enhance_peaks,
+    enhance_ecg_peaks,
 )
-
-from . import config
+from .visualizeutils import plotter, segment_plotter, plot_poincare, plot_breathing
 
 config.init()  # initialize global conf vars
 

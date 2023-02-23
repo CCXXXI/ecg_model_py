@@ -1,10 +1,7 @@
 import torch.nn as nn
-import torch
-import numpy as np
-import os
+import torch.nn.functional as F
 from models.resnet_cbam import ResNet, BasicBlock
 from models.vit import ViT
-import torch.nn.functional as F
 from torch.nn import init
 
 __all__ = [

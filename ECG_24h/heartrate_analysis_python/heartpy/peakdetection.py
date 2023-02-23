@@ -8,7 +8,6 @@ from scipy.signal import resample
 from .analysis import calc_rr, update_rr
 from .exceptions import BadSignalWarning
 
-
 __all__ = [
     "make_windows",
     "append_dict",

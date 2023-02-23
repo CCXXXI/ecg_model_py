@@ -1,22 +1,19 @@
-from U_net.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
+import os
+import time
+
+import numpy as np
+import torch
+import tqdm
+
 from data_process import (
     resample,
-    output_sliding_voting,
     U_net_peak,
     U_net_RPEAK,
     R_Detection_U_net,
     BSW,
 )
-import os
-import matplotlib.pylab as plt
-import time
-import torch
-import numpy as np
-import tqdm
-import json
-from scipy import signal
-import torch.nn.functional as F
 from dataset import transform
+
 
 # import os
 # os.chdir(os.path.dirname(__file__))
@@ -229,7 +226,7 @@ def classification_beats(
     print("###正在分类心拍###")
     start = time.time()
 
-    from data_process import name2index, file2index
+    from data_process import name2index
 
     name2idx = name2index(config.arrythmia)
     idx2name = {idx: name for name, idx in name2idx.items()}
@@ -332,10 +329,7 @@ def load_mybeats(data_name, load_dir):
 def get_lfhf(rr_intervals, rr_interval_times):
     from scipy.interpolate import interp1d
     from scipy import integrate
-    import glob
-    import codecs
     import numpy as np
-    import pandas as pd
 
     resampling_period = 0.5
     interpolation_method = "spline"

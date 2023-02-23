@@ -1,9 +1,6 @@
 import torch.nn as nn
-import torch
-import numpy as np
-import os
-from models.resnet_cbam import resnet34_cbam
 import torch.nn.functional as F
+from models.resnet_cbam import resnet34_cbam
 
 __all__ = ["Supcon_resnet34_cbam"]
 

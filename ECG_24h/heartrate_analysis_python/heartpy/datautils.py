@@ -3,9 +3,9 @@ Functions for loading and slicing data
 """
 
 from datetime import datetime
-from pkg_resources import resource_filename
 
 import numpy as np
+from pkg_resources import resource_filename
 from scipy.io import loadmat
 from scipy.ndimage.filters import uniform_filter1d
 

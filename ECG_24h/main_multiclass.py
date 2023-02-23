@@ -4,19 +4,19 @@
 
 @ author: javis
 """
-import torch, time, os, shutil
-import models, utils
-import numpy as np
-import pandas as pd
-from torch.utils.tensorboard import SummaryWriter
+import shutil
+import time
+
+from sklearn import metrics
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from dataset import *
-from data_process import *
-from config import config
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-import math
-from sklearn import metrics
+
+import models
+import utils
+from data_process import *
+from dataset import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

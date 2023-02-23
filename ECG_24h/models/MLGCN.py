@@ -1,11 +1,11 @@
-import torch.nn as nn
-from torch.nn import Parameter
-import torch
 import math
-from tqdm import tqdm
-import numpy as np
 import os
+
+import numpy as np
+import torch
+import torch.nn as nn
 from models.resnet_cbam import resnet34_cbam
+from torch.nn import Parameter
 
 __all__ = ["GCNResnet", "MLGCN_resnet34_cbam"]
 

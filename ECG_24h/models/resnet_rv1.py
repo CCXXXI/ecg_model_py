@@ -5,8 +5,9 @@
 @ author: javis
 """
 
-import torch.nn as nn
 import math
+
+import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
 __all__ = [
@@ -245,4 +246,3 @@ if __name__ == "__main__":
     x = torch.randn(1, 8, 2048)
     m = resnet34_rv1()
     m(x)
-    from torchvision.models import resnet
