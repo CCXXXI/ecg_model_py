@@ -3,7 +3,6 @@ import torch.nn as nn
 
 
 class SE_Module(nn.Module):
-
     def __init__(self, in_channels, ratio=16, dim=2):
         super(SE_Module, self).__init__()
         self.dim = dim
@@ -15,9 +14,8 @@ class SE_Module(nn.Module):
             nn.Linear(in_features=in_channels, out_features=in_channels // ratio),
             nn.ReLU(inplace=True),
             nn.Linear(in_features=in_channels // ratio, out_features=in_channels),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
-
 
     def forward(self, x):
         # x => [b, c, h, w] / x => [b, c, l]
@@ -34,31 +32,59 @@ class SE_Module(nn.Module):
         return identity * scale.expand_as(identity)
 
 
-
 class ResBlock1d(nn.Module):
-
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding=0, downsample=None, num_conv=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride,
+        padding=0,
+        downsample=None,
+        num_conv=None,
+    ):
         super(ResBlock1d, self).__init__()
         self.bn1 = nn.BatchNorm1d(num_features=in_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=stride, padding=padding, bias=False)
+        self.conv1 = nn.Conv1d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=False,
+        )
         self.SE1 = SE_Module(in_channels=out_channels, dim=1)
         self.bn4 = nn.BatchNorm1d(num_features=out_channels)
-        self.conv4 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=1, padding=padding, bias=False)
+        self.conv4 = nn.Conv1d(
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=1,
+            padding=padding,
+            bias=False,
+        )
         self.bn5 = nn.BatchNorm1d(num_features=out_channels)
-        self.conv5 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=1, padding=padding, bias=False)
+        self.conv5 = nn.Conv1d(
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=1,
+            padding=padding,
+            bias=False,
+        )
         self.bn6 = nn.BatchNorm1d(num_features=out_channels)
-        self.conv6 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=1, padding=padding, bias=False)
+        self.conv6 = nn.Conv1d(
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=1,
+            padding=padding,
+            bias=False,
+        )
         self.SE2 = SE_Module(in_channels=out_channels, dim=1)
         self.downsample = downsample
-        self.dropout =nn.Dropout(.2)
-
-
-
+        self.dropout = nn.Dropout(0.2)
 
     def forward(self, x):
         identity = x  # x => [b, 256, 310]
@@ -67,7 +93,6 @@ class ResBlock1d(nn.Module):
         out = self.relu(out)
         out = self.conv1(out)
         out = self.SE1(out)
-
 
         if self.downsample is not None:
             identity = self.downsample(x)
@@ -95,7 +120,6 @@ class ResBlock1d(nn.Module):
 
         out = self.SE2(out)
 
-
         out += identity
         out = self.relu(out)
 
@@ -103,25 +127,50 @@ class ResBlock1d(nn.Module):
 
 
 class ResBlock2d(nn.Module):
-
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding=0, downsample=None, num_conv=1):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride,
+        padding=0,
+        downsample=None,
+        num_conv=1,
+    ):
         super(ResBlock2d, self).__init__()
         self.bn1 = nn.BatchNorm2d(num_features=in_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=stride, padding=padding, bias=False)
+        self.conv1 = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=False,
+        )
         self.SE = SE_Module(in_channels=out_channels)
         self.downsample = downsample
         self.num_conv = num_conv
-        self.dropout = nn.Dropout(.2)
+        self.dropout = nn.Dropout(0.2)
         if self.num_conv == 3:
             self.bn2 = nn.BatchNorm2d(num_features=out_channels)
-            self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                   stride=stride, padding=padding, bias=False)
+            self.conv2 = nn.Conv2d(
+                in_channels=out_channels,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                bias=False,
+            )
             self.bn3 = nn.BatchNorm2d(num_features=out_channels)
-            self.conv3 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                   stride=stride, padding=padding, bias=False)
-
+            self.conv3 = nn.Conv2d(
+                in_channels=out_channels,
+                out_channels=out_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                bias=False,
+            )
 
     def forward(self, x):
         identity = x
@@ -154,31 +203,66 @@ class ResBlock2d(nn.Module):
 
 
 class SE_ECGNet(nn.Module):
-
     def __init__(self, struct=[(1, 3), (1, 5), (1, 7)], num_classes=34):
         super(SE_ECGNet, self).__init__()
         self.struct = struct
-        self.conv = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(1, 50), stride=(1, 2), padding=(0, 0),
-                              bias=False)
+        self.conv = nn.Conv2d(
+            in_channels=1,
+            out_channels=32,
+            kernel_size=(1, 50),
+            stride=(1, 2),
+            padding=(0, 0),
+            bias=False,
+        )
         self.relu = nn.ReLU(inplace=True)
         self.bn = nn.BatchNorm2d(32)
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(in_features=256 * len(struct), out_features=num_classes)
-        self.block1 = self._make_layer(in_channels=32, out_channels=32, kernel_size=(1, 15), stride=(1, 2),
-                                       block=ResBlock2d, blocks=3, padding=(0, 7))
+        self.block1 = self._make_layer(
+            in_channels=32,
+            out_channels=32,
+            kernel_size=(1, 15),
+            stride=(1, 2),
+            block=ResBlock2d,
+            blocks=3,
+            padding=(0, 7),
+        )
 
         self.block2_list = nn.ModuleList()
         self.block3_list = nn.ModuleList()
 
         for i, kernel_size in enumerate(self.struct):
-            block2 = self._make_layer(in_channels=32, out_channels=32, kernel_size=kernel_size, stride=(1, 1),
-                                      block=ResBlock2d, blocks=4, padding=(0, 1 * (i + 1)))
-            block3 = self._make_layer(in_channels=256, out_channels=256, kernel_size=kernel_size[1], stride=2,
-                                      block=ResBlock1d, blocks=4, padding=1 * (i + 1))
+            block2 = self._make_layer(
+                in_channels=32,
+                out_channels=32,
+                kernel_size=kernel_size,
+                stride=(1, 1),
+                block=ResBlock2d,
+                blocks=4,
+                padding=(0, 1 * (i + 1)),
+            )
+            block3 = self._make_layer(
+                in_channels=256,
+                out_channels=256,
+                kernel_size=kernel_size[1],
+                stride=2,
+                block=ResBlock1d,
+                blocks=4,
+                padding=1 * (i + 1),
+            )
             self.block2_list.append(block2)
             self.block3_list.append(block3)
 
-    def _make_layer(self, in_channels, out_channels, kernel_size, stride, block, blocks, padding=(0, 0)):
+    def _make_layer(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride,
+        block,
+        blocks,
+        padding=(0, 0),
+    ):
         layers = []
         num_conv = 1
         if blocks == 4:
@@ -188,23 +272,40 @@ class SE_ECGNet(nn.Module):
             downsample = nn.Sequential(
                 nn.BatchNorm2d(num_features=out_channels),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=(1, 1), stride=(1, 2),
-                          padding=(0, 0))
+                nn.Conv2d(
+                    in_channels=out_channels,
+                    out_channels=out_channels,
+                    kernel_size=(1, 1),
+                    stride=(1, 2),
+                    padding=(0, 0),
+                ),
             )
         if block == ResBlock1d:
             downsample = nn.Sequential(
                 nn.BatchNorm1d(num_features=out_channels),
                 nn.ReLU(inplace=True),
-                nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=1, stride=2,
-                          padding=0)
+                nn.Conv1d(
+                    in_channels=out_channels,
+                    out_channels=out_channels,
+                    kernel_size=1,
+                    stride=2,
+                    padding=0,
+                ),
             )
         for _ in range(blocks):
-            layers.append(block(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                   stride=stride, padding=padding, downsample=downsample, num_conv=num_conv))
+            layers.append(
+                block(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    kernel_size=kernel_size,
+                    stride=stride,
+                    padding=padding,
+                    downsample=downsample,
+                    num_conv=num_conv,
+                )
+            )
 
         return nn.Sequential(*layers)
-
-
 
     def forward(self, x, info=None):
         out = x.unsqueeze(1)
@@ -230,10 +331,7 @@ class SE_ECGNet(nn.Module):
         return out
 
 
-
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     input = torch.randn(16, 8, 5000)
     info = torch.randn(16, 2)
     SE_ECGNet = SE_ECGNet()

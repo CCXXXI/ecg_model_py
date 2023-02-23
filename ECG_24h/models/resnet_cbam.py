@@ -1,29 +1,48 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 @time: 2019/9/8 20:14
 直接修改torch的resnet
 @ author: javis
-'''
+"""
 
 import torch.nn as nn
 import math
 from torch.nn import init
 from models.cbam import CBAM
 
-__all__ = ['BasicBlock', 'ResNet', 'resnet18_cbam', 'resnet34_cbam', 'resnet50_cbam', 'resnet101_cbam',
-           'resnet152_cbam', 'resnet34_cbam_drp3', 'resnet34_cbam_ch9', 'resnet34_cbam_ch1']
+__all__ = [
+    "BasicBlock",
+    "ResNet",
+    "resnet18_cbam",
+    "resnet34_cbam",
+    "resnet50_cbam",
+    "resnet101_cbam",
+    "resnet152_cbam",
+    "resnet34_cbam_drp3",
+    "resnet34_cbam_ch9",
+    "resnet34_cbam_ch1",
+]
 
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
-    return nn.Conv1d(in_planes, out_planes, kernel_size=7, stride=stride,
-                     padding=3, bias=False)
+    return nn.Conv1d(
+        in_planes, out_planes, kernel_size=7, stride=stride, padding=3, bias=False
+    )
 
 
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, use_cbam=False, dropout_rate=0.2):
+    def __init__(
+        self,
+        inplanes,
+        planes,
+        stride=1,
+        downsample=None,
+        use_cbam=False,
+        dropout_rate=0.2,
+    ):
         super(BasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm1d(planes)
@@ -61,12 +80,21 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, use_cbam=False, dropout_rate=0.2):
+    def __init__(
+        self,
+        inplanes,
+        planes,
+        stride=1,
+        downsample=None,
+        use_cbam=False,
+        dropout_rate=0.2,
+    ):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv1d(inplanes, planes, kernel_size=7, bias=False, padding=3)
         self.bn1 = nn.BatchNorm1d(planes)
-        self.conv2 = nn.Conv1d(planes, planes, kernel_size=11, stride=stride,
-                               padding=5, bias=False)
+        self.conv2 = nn.Conv1d(
+            planes, planes, kernel_size=11, stride=stride, padding=5, bias=False
+        )
         self.bn2 = nn.BatchNorm1d(planes)
         self.conv3 = nn.Conv1d(planes, planes * 4, kernel_size=7, bias=False, padding=3)
         self.bn3 = nn.BatchNorm1d(planes * 4)
@@ -77,7 +105,8 @@ class Bottleneck(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
 
         if use_cbam:
-            self.cbam = CBAM( planes * 4, 16 )
+            self.cbam = CBAM(planes * 4, 16)
+
     def forward(self, x):
         residual = x
 
@@ -106,12 +135,20 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-
-    def __init__(self, block, layers, num_classes=55, att_type=None, dropout_rate=0.2, initial_channel=8):
+    def __init__(
+        self,
+        block,
+        layers,
+        num_classes=55,
+        att_type=None,
+        dropout_rate=0.2,
+        initial_channel=8,
+    ):
         self.inplanes = 64
         super(ResNet, self).__init__()
-        self.conv1 = nn.Conv1d(initial_channel, 64, kernel_size=15, stride=2, padding=7,
-                               bias=False)
+        self.conv1 = nn.Conv1d(
+            initial_channel, 64, kernel_size=15, stride=2, padding=7, bias=False
+        )
         self.bn1 = nn.BatchNorm1d(64)
         self.relu = nn.ReLU(inplace=True)
 
@@ -121,10 +158,33 @@ class ResNet(nn.Module):
         # self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         # self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         # self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-        self.layer1 = self._make_layer(block, 64,  layers[0], att_type=att_type, dropout_rate=dropout_rate)
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2, att_type=att_type, dropout_rate=dropout_rate)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2, att_type=att_type, dropout_rate=dropout_rate)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, att_type=att_type, dropout_rate=dropout_rate)
+        self.layer1 = self._make_layer(
+            block, 64, layers[0], att_type=att_type, dropout_rate=dropout_rate
+        )
+        self.layer2 = self._make_layer(
+            block,
+            128,
+            layers[1],
+            stride=2,
+            att_type=att_type,
+            dropout_rate=dropout_rate,
+        )
+        self.layer3 = self._make_layer(
+            block,
+            256,
+            layers[2],
+            stride=2,
+            att_type=att_type,
+            dropout_rate=dropout_rate,
+        )
+        self.layer4 = self._make_layer(
+            block,
+            512,
+            layers[3],
+            stride=2,
+            att_type=att_type,
+            dropout_rate=dropout_rate,
+        )
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
@@ -137,31 +197,54 @@ class ResNet(nn.Module):
         #         m.bias.data.zero_()
         init.kaiming_normal(self.fc.weight)
         for key in self.state_dict():
-            if key.split('.')[-1]=="weight":
+            if key.split(".")[-1] == "weight":
                 if "conv" in key:
-                    init.kaiming_normal(self.state_dict()[key], mode='fan_out')
+                    init.kaiming_normal(self.state_dict()[key], mode="fan_out")
                 if "bn" in key:
                     if "SpatialGate" in key:
                         self.state_dict()[key][...] = 0
                     else:
                         self.state_dict()[key][...] = 1
-            elif key.split(".")[-1]=='bias':
+            elif key.split(".")[-1] == "bias":
                 self.state_dict()[key][...] = 0
 
-    def _make_layer(self, block, planes, blocks, stride=1, att_type=None, dropout_rate=0.2):
+    def _make_layer(
+        self, block, planes, blocks, stride=1, att_type=None, dropout_rate=0.2
+    ):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv1d(self.inplanes, planes * block.expansion,
-                          kernel_size=1, stride=stride, bias=False),
+                nn.Conv1d(
+                    self.inplanes,
+                    planes * block.expansion,
+                    kernel_size=1,
+                    stride=stride,
+                    bias=False,
+                ),
                 nn.BatchNorm1d(planes * block.expansion),
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, use_cbam=att_type=='CBAM', dropout_rate=dropout_rate))
+        layers.append(
+            block(
+                self.inplanes,
+                planes,
+                stride,
+                downsample,
+                use_cbam=att_type == "CBAM",
+                dropout_rate=dropout_rate,
+            )
+        )
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes, use_cbam=att_type=='CBAM', dropout_rate=dropout_rate))
+            layers.append(
+                block(
+                    self.inplanes,
+                    planes,
+                    use_cbam=att_type == "CBAM",
+                    dropout_rate=dropout_rate,
+                )
+            )
 
         return nn.Sequential(*layers)
 
@@ -189,7 +272,7 @@ def resnet18_cbam(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [2, 2, 2, 2], att_type='CBAM', **kwargs)
+    model = ResNet(BasicBlock, [2, 2, 2, 2], att_type="CBAM", **kwargs)
     return model
 
 
@@ -199,7 +282,7 @@ def resnet34_cbam(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], att_type='CBAM', **kwargs)
+    model = ResNet(BasicBlock, [3, 4, 6, 3], att_type="CBAM", **kwargs)
     return model
 
 
@@ -209,7 +292,9 @@ def resnet34_cbam_ch9(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], att_type='CBAM', initial_channel=9, **kwargs)
+    model = ResNet(
+        BasicBlock, [3, 4, 6, 3], att_type="CBAM", initial_channel=9, **kwargs
+    )
     return model
 
 
@@ -219,7 +304,9 @@ def resnet34_cbam_ch1(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], att_type='CBAM', initial_channel=1, **kwargs)
+    model = ResNet(
+        BasicBlock, [3, 4, 6, 3], att_type="CBAM", initial_channel=1, **kwargs
+    )
     return model
 
 
@@ -230,9 +317,10 @@ def resnet34_cbam_drp3(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], att_type='CBAM', dropout_rate=0.3, **kwargs)
+    model = ResNet(
+        BasicBlock, [3, 4, 6, 3], att_type="CBAM", dropout_rate=0.3, **kwargs
+    )
     return model
-
 
 
 def resnet50_cbam(pretrained=False, **kwargs):
@@ -241,7 +329,7 @@ def resnet50_cbam(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 4, 6, 3], att_type='CBAM', **kwargs)
+    model = ResNet(Bottleneck, [3, 4, 6, 3], att_type="CBAM", **kwargs)
     return model
 
 
@@ -251,7 +339,7 @@ def resnet101_cbam(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 4, 23, 3], att_type='CBAM', **kwargs)
+    model = ResNet(Bottleneck, [3, 4, 23, 3], att_type="CBAM", **kwargs)
     return model
 
 
@@ -261,14 +349,11 @@ def resnet152_cbam(pretrained=False, **kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 8, 36, 3], att_type='CBAM', **kwargs)
+    model = ResNet(Bottleneck, [3, 8, 36, 3], att_type="CBAM", **kwargs)
     return model
 
 
-
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     import torch
 
     x = torch.randn(2, 8, 2048)
@@ -276,7 +361,7 @@ if __name__ == '__main__':
     print(m)
     y = m(x)
     print(y.shape)
-    print('---------')
+    print("---------")
     print(m.layer4[-1])
-    print('---------')
+    print("---------")
     print(m.layer4[-1].cbam)

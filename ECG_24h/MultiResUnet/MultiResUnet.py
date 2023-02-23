@@ -11,24 +11,33 @@ from random import shuffle
 from config import config
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader,Dataset
+from torch.utils.data import DataLoader, Dataset
 import torch.nn.functional as F
 from IPython.display import Image
 import torch
 
 
-
-def conv1d_bn(in_channels, filters, kernel_size, stride=1,padding=4, activation='relu'):
-
-    affine = False if activation == 'relu' or activation == 'sigmoid' else True
+def conv1d_bn(
+    in_channels, filters, kernel_size, stride=1, padding=4, activation="relu"
+):
+    affine = False if activation == "relu" or activation == "sigmoid" else True
     sequence = []
-    sequence += [torch.nn.Conv1d(in_channels=in_channels,out_channels=filters,kernel_size=kernel_size,stride=stride,bias=False,padding=padding)]
+    sequence += [
+        torch.nn.Conv1d(
+            in_channels=in_channels,
+            out_channels=filters,
+            kernel_size=kernel_size,
+            stride=stride,
+            bias=False,
+            padding=padding,
+        )
+    ]
     sequence += [torch.nn.BatchNorm1d(filters, affine=affine)]
     if activation == "relu":
         sequence += [torch.nn.ReLU()]
     elif activation == "sigmoid":
         sequence += [torch.nn.Sigmoid()]
-    elif activation == 'tanh':
+    elif activation == "tanh":
         sequence += [torch.nn.Tanh()]
     return torch.nn.Sequential(*sequence)
 
@@ -38,10 +47,12 @@ class MultiResBlock(torch.nn.Module):
         super().__init__()
         w = alpha * u
         self.out_channel = int(w * 0.167) + int(w * 0.333) + int(w * 0.5)
-        self.conv1d_bn = conv1d_bn(in_channels, self.out_channel, 1, activation=None,padding=0)
-        self.conv3x3 = conv1d_bn(in_channels, int(w * 0.167), 9, activation='relu')
-        self.conv5x5 = conv1d_bn(int(w * 0.167), int(w * 0.333), 9, activation='relu')
-        self.conv7x7 = conv1d_bn(int(w * 0.333), int(w * 0.5), 9, activation='relu')
+        self.conv1d_bn = conv1d_bn(
+            in_channels, self.out_channel, 1, activation=None, padding=0
+        )
+        self.conv3x3 = conv1d_bn(in_channels, int(w * 0.167), 9, activation="relu")
+        self.conv5x5 = conv1d_bn(int(w * 0.167), int(w * 0.333), 9, activation="relu")
+        self.conv7x7 = conv1d_bn(int(w * 0.333), int(w * 0.5), 9, activation="relu")
         self.bn_1 = torch.nn.BatchNorm1d(self.out_channel)
         self.relu = torch.nn.ReLU()
         self.bn_2 = torch.nn.BatchNorm1d(self.out_channel)
@@ -72,8 +83,8 @@ class MultiResBlock(torch.nn.Module):
 class ResPathBlock(torch.nn.Module):
     def __init__(self, in_channels, filters):
         super(ResPathBlock, self).__init__()
-        self.conv1d_bn1 = conv1d_bn(in_channels, filters, 1, activation=None,padding=0)
-        self.conv1d_bn2 = conv1d_bn(in_channels, filters, 9, activation='relu')
+        self.conv1d_bn1 = conv1d_bn(in_channels, filters, 1, activation=None, padding=0)
+        self.conv1d_bn2 = conv1d_bn(in_channels, filters, 9, activation="relu")
         self.relu = torch.nn.ReLU()
         self.bn = torch.nn.BatchNorm1d(filters)
 
@@ -91,7 +102,9 @@ class ResPath(torch.nn.Module):
     def __init__(self, in_channels, filters, length):
         super(ResPath, self).__init__()
         self.first_block = ResPathBlock(in_channels, filters)
-        self.blocks = torch.nn.Sequential(*[ResPathBlock(filters, filters) for i in range(length - 1)])
+        self.blocks = torch.nn.Sequential(
+            *[ResPathBlock(filters, filters) for i in range(length - 1)]
+        )
 
     def forward(self, inp):
         out = self.first_block(inp)
@@ -120,23 +133,39 @@ class MultiResUnet(torch.nn.Module):
 
         self.mres_block5 = MultiResBlock(self.mres_block4.out_channel, u=nf * 16)
 
-        self.deconv1 = torch.nn.ConvTranspose1d(self.mres_block5.out_channel, nf * 8,kernel_size=8,stride=2,padding=3)
-        self.mres_block6 = MultiResBlock(nf * 8 + nf * 8, u=nf * 8, use_dropout=use_dropout)
+        self.deconv1 = torch.nn.ConvTranspose1d(
+            self.mres_block5.out_channel, nf * 8, kernel_size=8, stride=2, padding=3
+        )
+        self.mres_block6 = MultiResBlock(
+            nf * 8 + nf * 8, u=nf * 8, use_dropout=use_dropout
+        )
         # MultiResBlock(nf * 8 + self.mres_block4.out_channel, u=nf * 8)
 
-        self.deconv2 = torch.nn.ConvTranspose1d(self.mres_block6.out_channel, nf * 4, kernel_size=8,stride=2,padding=3)
-        self.mres_block7 = MultiResBlock(nf * 4 + nf * 4, u=nf * 4, use_dropout=use_dropout)
+        self.deconv2 = torch.nn.ConvTranspose1d(
+            self.mres_block6.out_channel, nf * 4, kernel_size=8, stride=2, padding=3
+        )
+        self.mres_block7 = MultiResBlock(
+            nf * 4 + nf * 4, u=nf * 4, use_dropout=use_dropout
+        )
         # MultiResBlock(nf * 4 + self.mres_block3.out_channel, u=nf * 4)
 
-        self.deconv3 = torch.nn.ConvTranspose1d(self.mres_block7.out_channel, nf * 2, kernel_size=8,stride=2,padding=3)
-        self.mres_block8 = MultiResBlock(nf * 2 + nf * 2, u=nf * 2, use_dropout=use_dropout)
+        self.deconv3 = torch.nn.ConvTranspose1d(
+            self.mres_block7.out_channel, nf * 2, kernel_size=8, stride=2, padding=3
+        )
+        self.mres_block8 = MultiResBlock(
+            nf * 2 + nf * 2, u=nf * 2, use_dropout=use_dropout
+        )
         # MultiResBlock(nf * 2 + self.mres_block2.out_channel, u=nf * 2)
 
-        self.deconv4 = torch.nn.ConvTranspose1d(self.mres_block8.out_channel, nf, kernel_size=8,stride=2,padding=3)
+        self.deconv4 = torch.nn.ConvTranspose1d(
+            self.mres_block8.out_channel, nf, kernel_size=8, stride=2, padding=3
+        )
         self.mres_block9 = MultiResBlock(nf + nf, u=nf)
         # MultiResBlock(nf + self.mres_block1.out_channel, u=nf)
 
-        self.conv10 = conv1d_bn(self.mres_block9.out_channel, out_channels, 9, activation='tanh')
+        self.conv10 = conv1d_bn(
+            self.mres_block9.out_channel, out_channels, 9, activation="tanh"
+        )
 
     def forward(self, inp):
         mresblock1 = self.mres_block1(inp)

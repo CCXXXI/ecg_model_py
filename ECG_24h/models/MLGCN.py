@@ -7,7 +7,8 @@ import numpy as np
 import os
 from models.resnet_cbam import resnet34_cbam
 
-__all__ = ['GCNResnet', 'MLGCN_resnet34_cbam']
+__all__ = ["GCNResnet", "MLGCN_resnet34_cbam"]
+
 
 class GraphConvolution(nn.Module):
     """
@@ -23,12 +24,11 @@ class GraphConvolution(nn.Module):
             # self.bias = Parameter(torch.Tensor(1, 1, out_features))
             self.bias = Parameter(torch.Tensor(1, out_features))
         else:
-            self.register_parameter('bias', None)
+            self.register_parameter("bias", None)
         self.reset_parameters()
 
     def reset_parameters(self):
-
-        stdv = 1. / math.sqrt(self.weight.size(1))
+        stdv = 1.0 / math.sqrt(self.weight.size(1))
         self.weight.data.uniform_(-stdv, stdv)
         if self.bias is not None:
             self.bias.data.uniform_(-stdv, stdv)
@@ -42,13 +42,28 @@ class GraphConvolution(nn.Module):
             return output
 
     def __repr__(self):
-        return self.__class__.__name__ + ' (' \
-               + str(self.in_features) + ' -> ' \
-               + str(self.out_features) + ')'
+        return (
+            self.__class__.__name__
+            + " ("
+            + str(self.in_features)
+            + " -> "
+            + str(self.out_features)
+            + ")"
+        )
 
 
 class GCNResnet(nn.Module):
-    def __init__(self, model, num_classes, adj: np.ndarray, word_embedding: np.ndarray, device, in_channel=300, t=0.0, gen_A_method='default'):
+    def __init__(
+        self,
+        model,
+        num_classes,
+        adj: np.ndarray,
+        word_embedding: np.ndarray,
+        device,
+        in_channel=300,
+        t=0.0,
+        gen_A_method="default",
+    ):
         super(GCNResnet, self).__init__()
         self.features = nn.Sequential(
             model.conv1,
@@ -62,7 +77,9 @@ class GCNResnet(nn.Module):
         )
         self.device = device
         self.num_classes = num_classes
-        self.pooling = nn.MaxPool1d(14, 14)  # (batchsize, 512, 64) -> (batchsize, 512, 4)
+        self.pooling = nn.MaxPool1d(
+            14, 14
+        )  # (batchsize, 512, 64) -> (batchsize, 512, 4)
 
         self.gc1 = GraphConvolution(in_channel, 1024)
         self.gc2 = GraphConvolution(1024, 2048)
@@ -81,10 +98,12 @@ class GCNResnet(nn.Module):
         # self.image_normalization_mean = [0.485, 0.456, 0.406]
         # self.image_normalization_std = [0.229, 0.224, 0.225]
 
-    def forward(self, feature):#, inp):
+    def forward(self, feature):  # , inp):
         feature = self.features(feature)
         feature = self.pooling(feature)  # (batchsize, 512, 64) -> (batchsize, 512, 4)
-        feature = feature.view(feature.size(0), -1)  # (batchsize, 512, 4) -> (batchsize, 2048)
+        feature = feature.view(
+            feature.size(0), -1
+        )  # (batchsize, 512, 4) -> (batchsize, 2048)
         # feature = self.bn(feature)
 
         adj = self.gen_adj(self.A).detach()
@@ -99,18 +118,16 @@ class GCNResnet(nn.Module):
 
         x = torch.matmul(feature, x)
 
-
-
         # x = self.bn(x)
 
         return x
 
     def get_config_optim(self, lr, lrp):
         return [
-                {'params': self.features.parameters(), 'lr': lr * lrp},
-                {'params': self.gc1.parameters(), 'lr': lr},
-                {'params': self.gc2.parameters(), 'lr': lr},
-                ]
+            {"params": self.features.parameters(), "lr": lr * lrp},
+            {"params": self.gc1.parameters(), "lr": lr},
+            {"params": self.gc2.parameters(), "lr": lr},
+        ]
 
     def gen_adj(self, A):
         D = torch.pow(A.sum(1).float(), -0.5)
@@ -119,34 +136,58 @@ class GCNResnet(nn.Module):
         # adj = torch.matmul(torch.matmul(D, A), D)
         return adj
 
-    def gen_A(self, num_classes, t, adj, method='t_threshold'):
+    def gen_A(self, num_classes, t, adj, method="t_threshold"):
         _adj = adj.copy()
-        if method == 't_threshold':
+        if method == "t_threshold":
             _adj[_adj < t] = 0
             _adj[_adj >= t] = 1
             _adj = _adj * 0.25 / (_adj.sum(0, keepdims=True) + 1e-6)
             _adj = _adj + np.identity(num_classes, np.int32)
-        elif method == 'default':
+        elif method == "default":
             for i in range(self.num_classes):
                 _adj[i][i] = 1.0
         return _adj
 
 
-def MLGCN_resnet34_cbam(num_classes, adj: np.ndarray, word_embedding: np.ndarray, t: float, device, gen_A_method='default'):
+def MLGCN_resnet34_cbam(
+    num_classes,
+    adj: np.ndarray,
+    word_embedding: np.ndarray,
+    t: float,
+    device,
+    gen_A_method="default",
+):
     rs34_cbam = resnet34_cbam(num_classes=num_classes)
-    model = GCNResnet(rs34_cbam, adj=adj, word_embedding=word_embedding, num_classes=30, t=t, gen_A_method=gen_A_method, device=device)
+    model = GCNResnet(
+        rs34_cbam,
+        adj=adj,
+        word_embedding=word_embedding,
+        num_classes=30,
+        t=t,
+        gen_A_method=gen_A_method,
+        device=device,
+    )
     return model
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     model = GraphConvolution(300, 1024)
     print(model)
-    train_labelrelationship_matrix = os.path.join('E:/Work/ECG_AI/上海数创医疗/data/20210401 筛选数据90258条', 'train_v7_labelrelationship_matrix.csv')
-    P = np.loadtxt(train_labelrelationship_matrix, delimiter=',')
+    train_labelrelationship_matrix = os.path.join(
+        "E:/Work/ECG_AI/上海数创医疗/data/20210401 筛选数据90258条",
+        "train_v7_labelrelationship_matrix.csv",
+    )
+    P = np.loadtxt(train_labelrelationship_matrix, delimiter=",")
     for i in range(P.shape[0]):
         P[i][i] = 0.0
     inp = torch.randn(30, 300)
-    model = GCNResnet(resnet34_cbam(num_classes=30), adj=P, word_embedding=inp.numpy(), num_classes=30, t=0.4)
+    model = GCNResnet(
+        resnet34_cbam(num_classes=30),
+        adj=P,
+        word_embedding=inp.numpy(),
+        num_classes=30,
+        t=0.4,
+    )
     feature = torch.randn(1, 8, 2048)
 
     y = model(feature)

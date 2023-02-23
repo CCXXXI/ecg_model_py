@@ -1,6 +1,6 @@
 import setuptools
 
-with open("README.md", "r",encoding='utf-8') as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
@@ -32,11 +32,10 @@ setuptools.setup(
         "matplotlib<=3.0.0;python_version=='3.5'",
         "matplotlib<=3.1.2;python_version=='3.6'",
         "matplotlib<=3.3.4;python_version=='3.7'",
-        "matplotlib;python_version>='3.8'"],
+        "matplotlib;python_version>='3.8'",
+    ],
     include_package_data=True,
-    package_data={
-        '': ['data/*.csv', 'data/*.mat', 'data/*.log']       
-    },
+    package_data={"": ["data/*.csv", "data/*.mat", "data/*.log"]},
     classifiers=[
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.4",

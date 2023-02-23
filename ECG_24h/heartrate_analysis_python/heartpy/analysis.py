@@ -1,7 +1,7 @@
-'''
+"""
 Functions that handle computation of heart rate (HR) and
 heart rate variability (HRV) measures.
-'''
+"""
 
 import warnings
 
@@ -14,17 +14,19 @@ from .filtering import quotient_filter
 import heartpy as hp
 
 
-__all__ = ['calc_rr',
-           'update_rr',
-           'calc_rr_segment',
-           'clean_rr_intervals',
-           'calc_ts_measures',
-           'calc_fd_measures',
-           'calc_breathing']
+__all__ = [
+    "calc_rr",
+    "update_rr",
+    "calc_rr_segment",
+    "clean_rr_intervals",
+    "calc_ts_measures",
+    "calc_fd_measures",
+    "calc_breathing",
+]
 
 
 def calc_rr(peaklist, sample_rate, working_data={}):
-    '''calculates peak-peak intervals
+    """calculates peak-peak intervals
 
     Function that calculates the peak-peak data required for
     further analysis. Stores results in the working_data{} dict.
@@ -64,29 +66,29 @@ def calc_rr(peaklist, sample_rate, working_data={}):
 
     Note that the list of peak-peak intervals is of length len(peaks) - 1
     the length of the differences is of length len(peaks) - 2
-    '''
-    peaklist = np.array(peaklist) #cast numpy array to be sure or correct array type
+    """
+    peaklist = np.array(peaklist)  # cast numpy array to be sure or correct array type
 
-    #delete first peak if within first 150ms (signal might start mid-beat after peak)
+    # delete first peak if within first 150ms (signal might start mid-beat after peak)
     if len(peaklist) > 0:
         if peaklist[0] <= ((sample_rate / 1000.0) * 150):
             peaklist = np.delete(peaklist, 0)
-            working_data['ybeat'] = np.delete(working_data['ybeat'], 0)
-    working_data['peaklist'] = peaklist # Make sure, peaklist is always an np.array
+            working_data["ybeat"] = np.delete(working_data["ybeat"], 0)
+    working_data["peaklist"] = peaklist  # Make sure, peaklist is always an np.array
 
     rr_list = (np.diff(peaklist) / sample_rate) * 1000.0
-    rr_indices = [(peaklist[i], peaklist[i+1]) for i in range(len(peaklist) - 1)]
+    rr_indices = [(peaklist[i], peaklist[i + 1]) for i in range(len(peaklist) - 1)]
     rr_diff = np.abs(np.diff(rr_list))
     rr_sqdiff = np.power(rr_diff, 2)
-    working_data['RR_list'] = rr_list
-    working_data['RR_indices'] = rr_indices
-    working_data['RR_diff'] = rr_diff
-    working_data['RR_sqdiff'] = rr_sqdiff
+    working_data["RR_list"] = rr_list
+    working_data["RR_indices"] = rr_indices
+    working_data["RR_diff"] = rr_diff
+    working_data["RR_sqdiff"] = rr_sqdiff
     return working_data
 
 
 def update_rr(working_data={}):
-    '''updates differences between adjacent peak-peak distances
+    """updates differences between adjacent peak-peak distances
 
     Function that updates RR differences and RR squared differences
     based on corrected RR list
@@ -136,26 +138,37 @@ def update_rr(working_data={}):
 
     As well as updated the lists RR_diff (differences between adjacent peak-peak intervals) and
     RR_sqdiff (squared differences between adjacent peak-peak intervals).
-    '''
-    rr_source = working_data['RR_list']
-    b_peaklist = working_data['binary_peaklist']
-    rr_list = np.array([rr_source[i] for i in range(len(rr_source)) if b_peaklist[i] + b_peaklist[i+1] == 2])
-    rr_mask = np.array([0 if (b_peaklist[i] + b_peaklist[i+1] == 2) else 1 for i in range(len(rr_source))])
+    """
+    rr_source = working_data["RR_list"]
+    b_peaklist = working_data["binary_peaklist"]
+    rr_list = np.array(
+        [
+            rr_source[i]
+            for i in range(len(rr_source))
+            if b_peaklist[i] + b_peaklist[i + 1] == 2
+        ]
+    )
+    rr_mask = np.array(
+        [
+            0 if (b_peaklist[i] + b_peaklist[i + 1] == 2) else 1
+            for i in range(len(rr_source))
+        ]
+    )
     rr_masked = np.ma.array(rr_source, mask=rr_mask)
     rr_diff = np.abs(np.diff(rr_masked))
     rr_diff = rr_diff[~rr_diff.mask]
     rr_sqdiff = np.power(rr_diff, 2)
 
-    working_data['RR_masklist'] = rr_mask
-    working_data['RR_list_cor'] = rr_list
-    working_data['RR_diff'] = rr_diff
-    working_data['RR_sqdiff'] = rr_sqdiff
+    working_data["RR_masklist"] = rr_mask
+    working_data["RR_list_cor"] = rr_list
+    working_data["RR_diff"] = rr_diff
+    working_data["RR_sqdiff"] = rr_sqdiff
 
     return working_data
 
 
 def calc_rr_segment(rr_source, b_peaklist):
-    '''calculates peak-peak differences for segmentwise processing
+    """calculates peak-peak differences for segmentwise processing
 
     Function that calculates rr-measures when analysing segmentwise
     in the 'fast' mode.
@@ -193,9 +206,16 @@ def calc_rr_segment(rr_source, b_peaklist):
     [450.0 138.0 140.0]
     >>> print(rrsd)
     [202500.  19044.  19600.]
-    '''
-    rr_list = [rr_source[i] for i in range(len(rr_source)) if b_peaklist[i] + b_peaklist[i+1] == 2]
-    rr_mask = [0 if (b_peaklist[i] + b_peaklist[i+1] == 2) else 1 for i in range(len(rr_source))]
+    """
+    rr_list = [
+        rr_source[i]
+        for i in range(len(rr_source))
+        if b_peaklist[i] + b_peaklist[i + 1] == 2
+    ]
+    rr_mask = [
+        0 if (b_peaklist[i] + b_peaklist[i + 1] == 2) else 1
+        for i in range(len(rr_source))
+    ]
     rr_masked = np.ma.array(rr_source, mask=rr_mask)
     rr_diff = np.abs(np.diff(rr_masked))
     rr_diff = rr_diff[~rr_diff.mask]
@@ -204,8 +224,8 @@ def calc_rr_segment(rr_source, b_peaklist):
     return rr_list, rr_diff, rr_sqdiff
 
 
-def clean_rr_intervals(working_data, method='quotient-filter'):
-    '''detects and rejects outliers in peak-peak intervals
+def clean_rr_intervals(working_data, method="quotient-filter"):
+    """detects and rejects outliers in peak-peak intervals
 
     Function that detects and rejects outliers in the peak-peak intervals. It updates
     the RR_list_cor in the working data dict
@@ -256,56 +276,60 @@ def clean_rr_intervals(working_data, method='quotient-filter'):
     >>> wd = clean_rr_intervals(working_data = wd, method = 'iqr')
     >>> ['%.3f' %x for x in wd['RR_list_cor'][0:5]]
     ['897.470', '811.997', '829.091', '965.849', '803.449']
-    '''
+    """
 
-    #generate RR_list_cor indices relative to RR_list
-    RR_cor_indices = [i for i in range(len(working_data['RR_masklist']))
-                       if working_data['RR_masklist'][i] == 0]
+    # generate RR_list_cor indices relative to RR_list
+    RR_cor_indices = [
+        i
+        for i in range(len(working_data["RR_masklist"]))
+        if working_data["RR_masklist"][i] == 0
+    ]
 
-    #clean rr-list
-    if method.lower() == 'iqr':
-        rr_cleaned, replaced_indices = outliers_iqr_method(working_data['RR_list_cor'])
-        rr_mask = working_data['RR_masklist']
+    # clean rr-list
+    if method.lower() == "iqr":
+        rr_cleaned, replaced_indices = outliers_iqr_method(working_data["RR_list_cor"])
+        rr_mask = working_data["RR_masklist"]
         for i in replaced_indices:
             rr_mask[RR_cor_indices[i]] = 1
 
-    elif method.lower() == 'z-score':
-        rr_cleaned, replaced_indices = outliers_modified_z(working_data['RR_list_cor'])
-        rr_mask = working_data['RR_masklist']
+    elif method.lower() == "z-score":
+        rr_cleaned, replaced_indices = outliers_modified_z(working_data["RR_list_cor"])
+        rr_mask = working_data["RR_masklist"]
         for i in replaced_indices:
             rr_mask[RR_cor_indices[i]] = 1
 
-    elif method.lower() == 'quotient-filter':
-        rr_mask = quotient_filter(working_data['RR_list'], working_data['RR_masklist'])
-        rr_cleaned = [x for x,y in zip(working_data['RR_list'], rr_mask) if y == 0]
-
+    elif method.lower() == "quotient-filter":
+        rr_mask = quotient_filter(working_data["RR_list"], working_data["RR_masklist"])
+        rr_cleaned = [x for x, y in zip(working_data["RR_list"], rr_mask) if y == 0]
 
     else:
-        raise ValueError('Incorrect method specified, use either "iqr", "z-score" or "quotient-filtering". \
-Nothing to do!')
+        raise ValueError(
+            'Incorrect method specified, use either "iqr", "z-score" or "quotient-filtering". \
+Nothing to do!'
+        )
 
-    rr_masked = np.ma.array(working_data['RR_list'], mask=rr_mask)
+    rr_masked = np.ma.array(working_data["RR_list"], mask=rr_mask)
     rr_diff = np.abs(np.diff(rr_masked))
     rr_diff = rr_diff[~rr_diff.mask]
     rr_sqdiff = np.power(rr_diff, 2)
-    working_data['RR_masked'] = rr_masked
-    working_data['RR_list_cor'] = np.asarray(rr_cleaned)
-    working_data['RR_diff'] = rr_diff
-    working_data['RR_sqdiff'] = rr_sqdiff
+    working_data["RR_masked"] = rr_masked
+    working_data["RR_list_cor"] = np.asarray(rr_cleaned)
+    working_data["RR_diff"] = rr_diff
+    working_data["RR_sqdiff"] = rr_sqdiff
 
     try:
-        removed_beats = [x for x in working_data['removed_beats']]
-        removed_beats_y = [x for x in working_data['removed_beats_y']]
-        peaklist = working_data['peaklist']
-        ybeat = working_data['ybeat']
+        removed_beats = [x for x in working_data["removed_beats"]]
+        removed_beats_y = [x for x in working_data["removed_beats_y"]]
+        peaklist = working_data["peaklist"]
+        ybeat = working_data["ybeat"]
 
         for i in range(len(rr_mask)):
             if rr_mask[i] == 1 and peaklist[i] not in removed_beats:
                 removed_beats.append(peaklist[i])
                 removed_beats_y.append(ybeat[i])
 
-        working_data['removed_beats'] = np.asarray(removed_beats)
-        working_data['removed_beats_y'] = np.asarray(removed_beats_y)
+        working_data["removed_beats"] = np.asarray(removed_beats)
+        working_data["removed_beats_y"] = np.asarray(removed_beats_y)
     except:
         pass
 
@@ -313,7 +337,7 @@ Nothing to do!')
 
 
 def calc_ts_measures(rr_list, rr_diff, rr_sqdiff, measures={}, working_data={}):
-    '''calculates standard time-series measurements.
+    """calculates standard time-series measurements.
 
     Function that calculates the time-series measurements for HeartPy.
 
@@ -367,33 +391,40 @@ def calc_ts_measures(rr_list, rr_diff, rr_sqdiff, measures={}, working_data={}):
     60.384
     >>> print('%.3f' %m['rmssd'])
     67.082
-    '''
+    """
 
-    measures['bpm'] = 60000 / np.mean(rr_list)
-    measures['ibi'] = np.mean(rr_list)
+    measures["bpm"] = 60000 / np.mean(rr_list)
+    measures["ibi"] = np.mean(rr_list)
 
     ##TODO:
-    measures['sdnn'] = np.std(rr_list)
-    measures['sdsd'] = np.std(rr_diff)
-    measures['rmssd'] = np.sqrt(np.mean(rr_sqdiff))
+    measures["sdnn"] = np.std(rr_list)
+    measures["sdsd"] = np.std(rr_diff)
+    measures["rmssd"] = np.sqrt(np.mean(rr_sqdiff))
     nn20 = rr_diff[np.where(rr_diff > 20.0)]
     nn50 = rr_diff[np.where(rr_diff > 50.0)]
-    working_data['nn20'] = nn20
-    working_data['nn50'] = nn50
+    working_data["nn20"] = nn20
+    working_data["nn50"] = nn50
     try:
-        measures['pnn20'] = float(len(nn20)) / float(len(rr_diff))
+        measures["pnn20"] = float(len(nn20)) / float(len(rr_diff))
     except:
-        measures['pnn20'] = np.nan
+        measures["pnn20"] = np.nan
     try:
-        measures['pnn50'] = float(len(nn50)) / float(len(rr_diff))
+        measures["pnn50"] = float(len(nn50)) / float(len(rr_diff))
     except:
-        measures['pnn50'] = np.nan
-    measures['hr_mad'] = MAD(rr_list)
+        measures["pnn50"] = np.nan
+    measures["hr_mad"] = MAD(rr_list)
 
     return working_data, measures
 
 
-def calc_fd_measures(method='welch', welch_wsize=240, square_spectrum=False, measures={}, working_data={}, degree_smoothing_spline=3):
+def calc_fd_measures(
+    method="welch",
+    welch_wsize=240,
+    square_spectrum=False,
+    measures={},
+    working_data={},
+    degree_smoothing_spline=3,
+):
     """calculates the frequency-domain measurements.
 
     Function that calculates the frequency-domain measurements for HeartPy.
@@ -493,45 +524,49 @@ def calc_fd_measures(method='welch', welch_wsize=240, square_spectrum=False, mea
     This warning will not repeat'
     --------------
     """
-    rr_list = working_data['RR_list_cor']
+    rr_list = working_data["RR_list_cor"]
 
     if len(rr_list) <= 1:
-        working_data['frq'] = np.nan
-        working_data['psd'] = np.nan
-        measures['vlf'] = np.nan
-        measures['lf'] = np.nan
-        measures['hf'] = np.nan
-        measures['lf/hf'] = np.nan
-        measures['p_total'] = np.nan
-        measures['vlf_perc'] = np.nan
-        measures['lf_perc'] = np.nan
-        measures['hf_perc'] = np.nan
-        measures['lf_nu'] = np.nan
-        measures['hf_nu'] = np.nan
+        working_data["frq"] = np.nan
+        working_data["psd"] = np.nan
+        measures["vlf"] = np.nan
+        measures["lf"] = np.nan
+        measures["hf"] = np.nan
+        measures["lf/hf"] = np.nan
+        measures["p_total"] = np.nan
+        measures["vlf_perc"] = np.nan
+        measures["lf_perc"] = np.nan
+        measures["hf_perc"] = np.nan
+        measures["lf_nu"] = np.nan
+        measures["hf_nu"] = np.nan
         return working_data, measures
-    elif np.sum(rr_list) <= 300000:   # pragma: no cover
+    elif np.sum(rr_list) <= 300000:  # pragma: no cover
         # warn if signal is short
-        msg = ''.join(('Short signal.\n',
-                       '\n---------Warning:---------\n',
-                       'too few peak-peak intervals for (reliable) frequency domain measure computation, ',
-                       'frequency output measures are still computed but treat them with caution!\n\n',
-                       'HF is usually computed over a minimum of 1 minute of good signal. ',
-                       'LF is usually computed over a minimum of 2 minutes of good signal.',
-                       'VLF is usually computed over a minimum of 5 minutes of good signal.',
-                       'The LF/HF ratio is usually computed over minimum 24 hours, although an ',
-                       'absolute minimum of 5 min has also been suggested.\n\n',
-                       'For more info see: \nShaffer, F., Ginsberg, J.P. (2017), ',
-                       'An Overview of Heart Rate Variability Metrics and Norms.\n\n',
-                       'Task Force of Pacing and Electrophysiology (1996), Heart Rate Variability, ',
-                       'in: European Heart Journal, vol.17, issue 3, pp354-381'
-                       '\n\nThis warning will not repeat'))
+        msg = "".join(
+            (
+                "Short signal.\n",
+                "\n---------Warning:---------\n",
+                "too few peak-peak intervals for (reliable) frequency domain measure computation, ",
+                "frequency output measures are still computed but treat them with caution!\n\n",
+                "HF is usually computed over a minimum of 1 minute of good signal. ",
+                "LF is usually computed over a minimum of 2 minutes of good signal.",
+                "VLF is usually computed over a minimum of 5 minutes of good signal.",
+                "The LF/HF ratio is usually computed over minimum 24 hours, although an ",
+                "absolute minimum of 5 min has also been suggested.\n\n",
+                "For more info see: \nShaffer, F., Ginsberg, J.P. (2017), ",
+                "An Overview of Heart Rate Variability Metrics and Norms.\n\n",
+                "Task Force of Pacing and Electrophysiology (1996), Heart Rate Variability, ",
+                "in: European Heart Journal, vol.17, issue 3, pp354-381"
+                "\n\nThis warning will not repeat",
+            )
+        )
         warnings.warn(msg, UserWarning)
 
     # Aggregate RR-list and interpolate to a uniform sampling rate at 4x resolution
     rr_x = np.cumsum(rr_list)
 
     resamp_factor = 4
-    datalen = int((len(rr_x) - 1)*resamp_factor)
+    datalen = int((len(rr_x) - 1) * resamp_factor)
     rr_x_new = np.linspace(int(rr_x[0]), int(rr_x[-1]), datalen)
 
     if len(rr_x) > degree_smoothing_spline:
@@ -545,83 +580,95 @@ def calc_fd_measures(method='welch', welch_wsize=240, square_spectrum=False, mea
         fs_new = fs * resamp_factor
 
         # compute PSD (one-sided, units of ms^2/Hz)
-        if method == 'fft':
+        if method == "fft":
             frq = np.fft.fftfreq(datalen, d=(1 / fs_new))
             frq = frq[range(int(datalen / 2))]
             Y = np.fft.fft(rr_interp) / datalen
             Y = Y[range(int(datalen / 2))]
             psd = np.power(Y, 2)
 
-        elif method == 'periodogram':
+        elif method == "periodogram":
             frq, psd = periodogram(rr_interp, fs=fs_new)
 
-        elif method == 'welch':
+        elif method == "welch":
             # nperseg should be based on trade-off btw temporal res and freq res
             # default is 4 min to get about 9 points in the VLF band
             nperseg = welch_wsize * fs_new
-            if nperseg >= len(rr_x_new):  # if nperseg is larger than the available data segment
-                nperseg = len(rr_x_new)  # set it to length of data segment to prevent scipy warnings
+            if nperseg >= len(
+                rr_x_new
+            ):  # if nperseg is larger than the available data segment
+                nperseg = len(
+                    rr_x_new
+                )  # set it to length of data segment to prevent scipy warnings
                 # as user is already informed through the signal length warning
             frq, psd = welch(rr_interp, fs=fs_new, nperseg=nperseg)
         else:
-            raise ValueError("specified method incorrect, use 'fft', 'periodogram' or 'welch'")
+            raise ValueError(
+                "specified method incorrect, use 'fft', 'periodogram' or 'welch'"
+            )
 
-        working_data['frq'] = frq
+        working_data["frq"] = frq
         if square_spectrum:
-            working_data['psd'] = np.power(psd, 2)
+            working_data["psd"] = np.power(psd, 2)
         else:
-            working_data['psd'] = psd
+            working_data["psd"] = psd
 
         # compute absolute power band measures (units of ms^2)
         df = frq[1] - frq[0]
-        measures['vlf'] = np.trapz(abs(psd[(frq >= 0.0033) & (frq < 0.04)]), dx=df)
-        measures['lf'] = np.trapz(abs(psd[(frq >= 0.04) & (frq < 0.15)]), dx=df)
-        measures['hf'] = np.trapz(abs(psd[(frq >= 0.15) & (frq < 0.4)]), dx=df)
-        measures['lf/hf'] = measures['lf'] / measures['hf']
+        measures["vlf"] = np.trapz(abs(psd[(frq >= 0.0033) & (frq < 0.04)]), dx=df)
+        measures["lf"] = np.trapz(abs(psd[(frq >= 0.04) & (frq < 0.15)]), dx=df)
+        measures["hf"] = np.trapz(abs(psd[(frq >= 0.15) & (frq < 0.4)]), dx=df)
+        measures["lf/hf"] = measures["lf"] / measures["hf"]
 
-        measures['p_total'] = measures['vlf'] + measures['lf'] + measures['hf']
+        measures["p_total"] = measures["vlf"] + measures["lf"] + measures["hf"]
 
         # compute relative and normalized power measures
-        perc_factor = 100 / measures['p_total']
-        measures['vlf_perc'] = measures['vlf'] * perc_factor
-        measures['lf_perc'] = measures['lf'] * perc_factor
-        measures['hf_perc'] = measures['hf'] * perc_factor
+        perc_factor = 100 / measures["p_total"]
+        measures["vlf_perc"] = measures["vlf"] * perc_factor
+        measures["lf_perc"] = measures["lf"] * perc_factor
+        measures["hf_perc"] = measures["hf"] * perc_factor
 
-        nu_factor = 100 / (measures['lf'] + measures['hf'])
-        measures['lf_nu'] = measures['lf'] * nu_factor
-        measures['hf_nu'] = measures['hf'] * nu_factor
+        nu_factor = 100 / (measures["lf"] + measures["hf"])
+        measures["lf_nu"] = measures["lf"] * nu_factor
+        measures["hf_nu"] = measures["hf"] * nu_factor
 
-        working_data['interp_rr_function'] = interpolation_func
-        working_data['interp_rr_linspace'] = rr_x_new
+        working_data["interp_rr_function"] = interpolation_func
+        working_data["interp_rr_linspace"] = rr_x_new
 
     else:
-        working_data['frq'] = np.nan
-        working_data['psd'] = np.nan
-        measures['vlf'] = np.nan
-        measures['lf'] = np.nan
-        measures['hf'] = np.nan
-        measures['lf/hf'] = np.nan
+        working_data["frq"] = np.nan
+        working_data["psd"] = np.nan
+        measures["vlf"] = np.nan
+        measures["lf"] = np.nan
+        measures["hf"] = np.nan
+        measures["lf/hf"] = np.nan
 
-        measures['p_total'] = np.nan
+        measures["p_total"] = np.nan
 
         # compute relative and normalized power measures
-        measures['vlf_perc'] = np.nan
-        measures['lf_perc'] = np.nan
-        measures['hf_perc'] = np.nan
+        measures["vlf_perc"] = np.nan
+        measures["lf_perc"] = np.nan
+        measures["hf_perc"] = np.nan
 
-        measures['lf_nu'] = np.nan
-        measures['hf_nu'] = np.nan
+        measures["lf_nu"] = np.nan
+        measures["hf_nu"] = np.nan
 
-        working_data['interp_rr_function'] = np.nan
-        working_data['interp_rr_linspace'] = rr_x_new
+        working_data["interp_rr_function"] = np.nan
+        working_data["interp_rr_linspace"] = rr_x_new
         # TODO: Warning about degree of the interpolation function.
 
     return working_data, measures
 
 
-def calc_breathing(rrlist, method='welch', filter_breathing=True,
-                   bw_cutoff=[0.1, 0.4], measures={}, working_data={}):
-    '''estimates breathing rate
+def calc_breathing(
+    rrlist,
+    method="welch",
+    filter_breathing=True,
+    bw_cutoff=[0.1, 0.4],
+    measures={},
+    working_data={},
+):
+    """estimates breathing rate
 
     Function that estimates breathing rate from heart rate signal.
     Upsamples the list of detected rr_intervals by interpolation then
@@ -675,48 +722,54 @@ def calc_breathing(rrlist, method='welch', filter_breathing=True,
     0.171
 
     There we have it, .17Hz, or about one breathing cycle in 6.25 seconds.
-    '''
+    """
 
-    #resample RR-list to 1000Hz
+    # resample RR-list to 1000Hz
     x = np.linspace(0, len(rrlist), len(rrlist))
     x_new = np.linspace(0, len(rrlist), np.sum(rrlist, dtype=np.int32))
     interp = UnivariateSpline(x, rrlist, k=3)
     breathing = interp(x_new)
 
     if filter_breathing:
-        breathing = hp.filtering.filter_signal(breathing, cutoff=bw_cutoff,
-                                               sample_rate = 1000.0, filtertype='bandpass')
+        breathing = hp.filtering.filter_signal(
+            breathing, cutoff=bw_cutoff, sample_rate=1000.0, filtertype="bandpass"
+        )
 
-    if method.lower() == 'fft':
+    if method.lower() == "fft":
         datalen = len(breathing)
-        frq = np.fft.fftfreq(datalen, d=((1/1000.0)))
-        frq = frq[range(int(datalen/2))]
-        Y = np.fft.fft(breathing)/datalen
-        Y = Y[range(int(datalen/2))]
+        frq = np.fft.fftfreq(datalen, d=((1 / 1000.0)))
+        frq = frq[range(int(datalen / 2))]
+        Y = np.fft.fft(breathing) / datalen
+        Y = Y[range(int(datalen / 2))]
         psd = np.power(np.abs(Y), 2)
-    elif method.lower() == 'welch':
+    elif method.lower() == "welch":
         if len(breathing) < 30000:
             frq, psd = welch(breathing, fs=1000, nperseg=len(breathing))
         else:
-            frq, psd = welch(breathing, fs=1000, nperseg=np.clip(len(breathing) // 10,
-                                                                 a_min=30000, a_max=None))
-    elif method.lower() == 'periodogram':
+            frq, psd = welch(
+                breathing,
+                fs=1000,
+                nperseg=np.clip(len(breathing) // 10, a_min=30000, a_max=None),
+            )
+    elif method.lower() == "periodogram":
         frq, psd = periodogram(breathing, fs=1000.0, nfft=30000)
 
     else:
-        raise ValueError('Breathing rate extraction method not understood! Must be \'welch\' or \'fft\'!')
+        raise ValueError(
+            "Breathing rate extraction method not understood! Must be 'welch' or 'fft'!"
+        )
 
-    #find max
-    measures['breathingrate'] = frq[np.argmax(psd)]
-    working_data['breathing_signal'] = breathing
-    working_data['breathing_psd'] = psd
-    working_data['breathing_frq'] = frq
+    # find max
+    measures["breathingrate"] = frq[np.argmax(psd)]
+    working_data["breathing_signal"] = breathing
+    working_data["breathing_psd"] = psd
+    working_data["breathing_frq"] = frq
 
     return measures, working_data
 
 
 def calc_poincare(rr_list, rr_mask=[], measures={}, working_data={}):
-    '''computes poincare parameters
+    """computes poincare parameters
 
     Function that takes peak-peak intervals and computes poincare parameters:
     [0] standard deviation perpendicular to identity line (SD1)
@@ -752,41 +805,41 @@ def calc_poincare(rr_list, rr_mask=[], measures={}, working_data={}):
     measures : dict
         dictionary object used by heartpy to store computed measures.
         poincare values are appended to measures['poincare']
-    '''
+    """
 
-    #generate vectors of adjacent peak-peak intervals
+    # generate vectors of adjacent peak-peak intervals
     x_plus = []
     x_minus = []
 
-    for i in range(len(working_data['RR_masklist']) - 1):
-        if working_data['RR_masklist'][i] + working_data['RR_masklist'][i + 1] == 0:
-            #only add adjacent RR-intervals that are not rejected
-            x_plus.append(working_data['RR_list'][i])
-            x_minus.append(working_data['RR_list'][i + 1])
+    for i in range(len(working_data["RR_masklist"]) - 1):
+        if working_data["RR_masklist"][i] + working_data["RR_masklist"][i + 1] == 0:
+            # only add adjacent RR-intervals that are not rejected
+            x_plus.append(working_data["RR_list"][i])
+            x_minus.append(working_data["RR_list"][i + 1])
         else:
             pass
 
-    #cast to arrays so we can do numerical work easily
+    # cast to arrays so we can do numerical work easily
     x_plus = np.asarray(x_plus)
     x_minus = np.asarray(x_minus)
 
-    #compute parameters and append to dict
+    # compute parameters and append to dict
     x_one = (x_plus - x_minus) / np.sqrt(2)
     x_two = (x_plus + x_minus) / np.sqrt(2)
-    sd1 = np.sqrt(np.var(x_one)) #compute stdev perpendicular to identity line
-    sd2 = np.sqrt(np.var(x_two)) #compute stdev parallel to identity line
-    s = np.pi * sd1 * sd2 #compute area of ellipse
+    sd1 = np.sqrt(np.var(x_one))  # compute stdev perpendicular to identity line
+    sd2 = np.sqrt(np.var(x_two))  # compute stdev parallel to identity line
+    s = np.pi * sd1 * sd2  # compute area of ellipse
 
-    #write computed measures to dicts
-    measures['sd1'] = sd1
-    measures['sd2'] = sd2
-    measures['s'] = s
-    measures['sd1/sd2'] = sd1 / sd2
+    # write computed measures to dicts
+    measures["sd1"] = sd1
+    measures["sd2"] = sd2
+    measures["s"] = s
+    measures["sd1/sd2"] = sd1 / sd2
 
-    working_data['poincare'] = {}
-    working_data['poincare']['x_plus'] = x_plus
-    working_data['poincare']['x_minus'] = x_minus
-    working_data['poincare']['x_one'] = x_one
-    working_data['poincare']['x_two'] = x_two
+    working_data["poincare"] = {}
+    working_data["poincare"]["x_plus"] = x_plus
+    working_data["poincare"]["x_minus"] = x_minus
+    working_data["poincare"]["x_one"] = x_one
+    working_data["poincare"]["x_two"] = x_two
 
     return measures

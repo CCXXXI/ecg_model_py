@@ -1,6 +1,6 @@
-'''
+"""
 main module for HeartPy.
-'''
+"""
 
 from datetime import datetime
 import time
@@ -12,53 +12,104 @@ from scipy.interpolate import UnivariateSpline
 from scipy.signal import butter, filtfilt, welch, periodogram, resample_poly, resample
 
 from . import exceptions
-from .datautils import get_data, get_samplerate_mstimer, get_samplerate_datetime,\
-                       rolling_mean, outliers_iqr_method, outliers_modified_z, \
-                       load_exampledata
-from .preprocessing import scale_data, scale_sections, interpolate_clipping, \
-                           flip_signal, enhance_peaks, enhance_ecg_peaks
-from .filtering import filter_signal, hampel_filter, hampel_correcter, \
-                       remove_baseline_wander, smooth_signal
-from .peakdetection import make_windows, append_dict, fit_peaks, check_peaks, \
-                           check_binary_quality, interpolate_peaks
+from .datautils import (
+    get_data,
+    get_samplerate_mstimer,
+    get_samplerate_datetime,
+    rolling_mean,
+    outliers_iqr_method,
+    outliers_modified_z,
+    load_exampledata,
+)
+from .preprocessing import (
+    scale_data,
+    scale_sections,
+    interpolate_clipping,
+    flip_signal,
+    enhance_peaks,
+    enhance_ecg_peaks,
+)
+from .filtering import (
+    filter_signal,
+    hampel_filter,
+    hampel_correcter,
+    remove_baseline_wander,
+    smooth_signal,
+)
+from .peakdetection import (
+    make_windows,
+    append_dict,
+    fit_peaks,
+    check_peaks,
+    check_binary_quality,
+    interpolate_peaks,
+)
 from .visualizeutils import plotter, segment_plotter, plot_poincare, plot_breathing
-from .analysis import calc_rr, calc_rr_segment, clean_rr_intervals, calc_ts_measures, \
-                      calc_fd_measures, calc_breathing, calc_poincare
+from .analysis import (
+    calc_rr,
+    calc_rr_segment,
+    clean_rr_intervals,
+    calc_ts_measures,
+    calc_fd_measures,
+    calc_breathing,
+    calc_poincare,
+)
 
 from . import config
-config.init() #initialize global conf vars
 
-__all__ = ['enhance_peaks',
-           'enhance_ecg_peaks',
-           'get_data',
-           'get_samplerate_mstimer',
-           'get_samplerate_datetime',
-           'hampel_correcter',
-           'hampel_filter',
-           'load_exampledata',
-           'plotter',
-           'plot_breathing',
-           'plot_poincare',
-           'process',
-           'process_rr',
-           'process_segmentwise',
-           'flip_signal',
-           'remove_baseline_wander',
-           'scale_data',
-           'scale_sections',
-           'segment_plotter',
-           'smooth_signal',
-           'filter_signal',
-           'run_tests']
+config.init()  # initialize global conf vars
+
+__all__ = [
+    "enhance_peaks",
+    "enhance_ecg_peaks",
+    "get_data",
+    "get_samplerate_mstimer",
+    "get_samplerate_datetime",
+    "hampel_correcter",
+    "hampel_filter",
+    "load_exampledata",
+    "plotter",
+    "plot_breathing",
+    "plot_poincare",
+    "process",
+    "process_rr",
+    "process_segmentwise",
+    "flip_signal",
+    "remove_baseline_wander",
+    "scale_data",
+    "scale_sections",
+    "segment_plotter",
+    "smooth_signal",
+    "filter_signal",
+    "run_tests",
+]
 
 
-def process(hrdata, sample_rate, windowsize=0.75, report_time=False,
-            calc_freq=False, freq_method='welch', welch_wsize=240, freq_square=False,
-            interp_clipping=False, clipping_scale=False, interp_threshold=1020,
-            hampel_correct=False, bpmmin=40, bpmmax=180, reject_segmentwise=False,
-            high_precision=False, high_precision_fs=1000.0, breathing_method='welch',
-            clean_rr=False, clean_rr_method='quotient-filter', measures=None, working_data=None):
-    '''processes passed heart rate data.
+def process(
+    hrdata,
+    sample_rate,
+    windowsize=0.75,
+    report_time=False,
+    calc_freq=False,
+    freq_method="welch",
+    welch_wsize=240,
+    freq_square=False,
+    interp_clipping=False,
+    clipping_scale=False,
+    interp_threshold=1020,
+    hampel_correct=False,
+    bpmmin=40,
+    bpmmax=180,
+    reject_segmentwise=False,
+    high_precision=False,
+    high_precision_fs=1000.0,
+    breathing_method="welch",
+    clean_rr=False,
+    clean_rr_method="quotient-filter",
+    measures=None,
+    working_data=None,
+):
+    """processes passed heart rate data.
 
     Processes the passed heart rate data. Returns measures{} dict containing results.
 
@@ -247,9 +298,9 @@ def process(hrdata, sample_rate, windowsize=0.75, report_time=False,
 
     >>> wd, m = hp.process(data, sample_rate = 100.0, calc_freq = True,
     ... interp_clipping = True, clipping_scale = True, reject_segmentwise = True, clean_rr = True)
-    '''
+    """
 
-    #initialize dicts if needed
+    # initialize dicts if needed
     if measures == None:
         measures = {}
 
@@ -257,22 +308,23 @@ def process(hrdata, sample_rate, windowsize=0.75, report_time=False,
         working_data = {}
 
     if sys.version_info[0] >= 3 and sys.version_info[1] >= 3:
-        #if python >= 3.3
+        # if python >= 3.3
         t1 = time.perf_counter()
     else:
         t1 = time.clock()
 
-
-    assert np.asarray(hrdata).ndim == 1, 'error: multi-dimensional data passed to process() \
+    assert (
+        np.asarray(hrdata).ndim == 1
+    ), "error: multi-dimensional data passed to process() \
 function. Please supply a 1d array or list containing heart rate signal data. \n\nDid you perhaps \
-include an index column?'
+include an index column?"
 
     if interp_clipping:
         if clipping_scale:
             hrdata = scale_data(hrdata)
         hrdata = interpolate_clipping(hrdata, sample_rate, threshold=interp_threshold)
 
-    if hampel_correct: # pragma: no cover
+    if hampel_correct:  # pragma: no cover
         hrdata = enhance_peaks(hrdata)
         hrdata = hampel_correcter(hrdata, sample_rate)
 
@@ -281,57 +333,100 @@ include an index column?'
     if bl_val < 0:
         hrdata = hrdata + abs(bl_val)
 
-    working_data['hr'] = hrdata
-    working_data['sample_rate'] = sample_rate
+    working_data["hr"] = hrdata
+    working_data["sample_rate"] = sample_rate
 
     rol_mean = rolling_mean(hrdata, windowsize, sample_rate)
 
-    working_data = fit_peaks(hrdata, rol_mean, sample_rate, bpmmin=bpmmin,
-                             bpmmax=bpmmax, working_data=working_data)
+    working_data = fit_peaks(
+        hrdata,
+        rol_mean,
+        sample_rate,
+        bpmmin=bpmmin,
+        bpmmax=bpmmax,
+        working_data=working_data,
+    )
 
     if high_precision:
-        working_data = interpolate_peaks(hrdata, working_data['peaklist'], sample_rate=sample_rate,
-                                         desired_sample_rate=high_precision_fs, working_data=working_data)
+        working_data = interpolate_peaks(
+            hrdata,
+            working_data["peaklist"],
+            sample_rate=sample_rate,
+            desired_sample_rate=high_precision_fs,
+            working_data=working_data,
+        )
 
-    working_data = calc_rr(working_data['peaklist'], sample_rate, working_data=working_data)
+    working_data = calc_rr(
+        working_data["peaklist"], sample_rate, working_data=working_data
+    )
 
-    working_data = check_peaks(working_data['RR_list'], working_data['peaklist'], working_data['ybeat'],
-                               reject_segmentwise, working_data=working_data)
+    working_data = check_peaks(
+        working_data["RR_list"],
+        working_data["peaklist"],
+        working_data["ybeat"],
+        reject_segmentwise,
+        working_data=working_data,
+    )
 
     if clean_rr:
-        working_data = clean_rr_intervals(working_data, method = clean_rr_method)
+        working_data = clean_rr_intervals(working_data, method=clean_rr_method)
 
-    working_data, measures = calc_ts_measures(working_data['RR_list_cor'], working_data['RR_diff'],
-                                              working_data['RR_sqdiff'], measures=measures,
-                                              working_data=working_data)
+    working_data, measures = calc_ts_measures(
+        working_data["RR_list_cor"],
+        working_data["RR_diff"],
+        working_data["RR_sqdiff"],
+        measures=measures,
+        working_data=working_data,
+    )
 
-    measures = calc_poincare(working_data['RR_list'], working_data['RR_masklist'], measures = measures,
-                             working_data = working_data)
+    measures = calc_poincare(
+        working_data["RR_list"],
+        working_data["RR_masklist"],
+        measures=measures,
+        working_data=working_data,
+    )
 
     try:
-        measures, working_data = calc_breathing(working_data['RR_list_cor'], method=breathing_method,
-                                                measures=measures, working_data=working_data)
+        measures, working_data = calc_breathing(
+            working_data["RR_list_cor"],
+            method=breathing_method,
+            measures=measures,
+            working_data=working_data,
+        )
     except:
-        measures['breathingrate'] = np.nan
+        measures["breathingrate"] = np.nan
 
     if calc_freq:
-        working_data, measures = calc_fd_measures(method=freq_method, welch_wsize=240, square_spectrum=freq_square,
-                                                  measures=measures, working_data=working_data)
+        working_data, measures = calc_fd_measures(
+            method=freq_method,
+            welch_wsize=240,
+            square_spectrum=freq_square,
+            measures=measures,
+            working_data=working_data,
+        )
 
-    #report time if requested. Exclude from tests, output is untestable.
-    if report_time: # pragma: no cover
+    # report time if requested. Exclude from tests, output is untestable.
+    if report_time:  # pragma: no cover
         if sys.version_info[0] >= 3 and sys.version_info[1] >= 3:
-            print('\nFinished in %.8s sec' %(time.perf_counter()-t1))
+            print("\nFinished in %.8s sec" % (time.perf_counter() - t1))
         else:
-            print('\nFinished in %.8s sec' %(time.clock()-t1))
+            print("\nFinished in %.8s sec" % (time.clock() - t1))
 
     return working_data, measures
 
 
-def process_segmentwise(hrdata, sample_rate, segment_width=120, segment_overlap=0,
-                        segment_min_size=20, replace_outliers=False, outlier_method='iqr',
-                        mode='full', **kwargs):
-    '''processes passed heart rate data with a windowed function
+def process_segmentwise(
+    hrdata,
+    sample_rate,
+    segment_width=120,
+    segment_overlap=0,
+    segment_min_size=20,
+    replace_outliers=False,
+    outlier_method="iqr",
+    mode="full",
+    **kwargs
+):
+    """processes passed heart rate data with a windowed function
 
     Analyses a long heart rate data array by running a moving window
     over the data, computing measures in each iteration. Both the window width
@@ -426,20 +521,27 @@ def process_segmentwise(hrdata, sample_rate, segment_width=120, segment_overlap=
     >>> wd, m = hp.process_segmentwise(data, sample_rate, segment_width=120, segment_overlap=0.5,
     ... mode = 'fast', replace_outliers = True, outlier_method = 'z-score')
 
-    '''
+    """
 
-    assert 0 <= segment_overlap < 1.0, 'value error: segment_overlap needs to be \
-0 <= segment_overlap < 1.0!'
+    assert (
+        0 <= segment_overlap < 1.0
+    ), "value error: segment_overlap needs to be \
+0 <= segment_overlap < 1.0!"
 
-    assert outlier_method in ['iqr', 'z-score'], 'Unknown outlier detection method specified, \
-use either \'iqr\' or \'z-score\''
+    assert outlier_method in [
+        "iqr",
+        "z-score",
+    ], "Unknown outlier detection method specified, \
+use either 'iqr' or 'z-score'"
 
-    s_measures={}
-    s_working_data={}
+    s_measures = {}
+    s_working_data = {}
 
-    slice_indices = make_windows(hrdata, sample_rate, segment_width, segment_overlap, segment_min_size)
+    slice_indices = make_windows(
+        hrdata, sample_rate, segment_width, segment_overlap, segment_min_size
+    )
 
-    if mode == 'full':
+    if mode == "full":
         for i, ii in slice_indices:
             try:
                 working_data, measures = process(hrdata[i:ii], sample_rate, **kwargs)
@@ -447,54 +549,80 @@ use either \'iqr\' or \'z-score\''
                     s_measures = append_dict(s_measures, k, measures[k])
                 for k in working_data.keys():
                     s_working_data = append_dict(s_working_data, k, working_data[k])
-                s_measures = append_dict(s_measures, 'segment_indices', (i, ii))
-                s_working_data = append_dict(s_working_data, 'segment_indices', (i, ii))
+                s_measures = append_dict(s_measures, "segment_indices", (i, ii))
+                s_working_data = append_dict(s_working_data, "segment_indices", (i, ii))
             except exceptions.BadSignalWarning:
                 pass
 
-    elif mode == 'fast':
+    elif mode == "fast":
         working_data, measures = process(hrdata, sample_rate, **kwargs)
-        peaklist = np.asarray(working_data['peaklist'])
+        peaklist = np.asarray(working_data["peaklist"])
         for i, ii in slice_indices:
-            #pks = [x for x in peaklist if i <= x < ii]
+            # pks = [x for x in peaklist if i <= x < ii]
             pks = peaklist[np.where((peaklist >= i) & (peaklist < ii))]
-            pks_b = working_data['binary_peaklist'][int(np.where(peaklist == pks[0])[0]):
-                                                    int(np.where(peaklist == pks[-1])[-1]) + 1]
+            pks_b = working_data["binary_peaklist"][
+                int(np.where(peaklist == pks[0])[0]) : int(
+                    np.where(peaklist == pks[-1])[-1]
+                )
+                + 1
+            ]
             rr_list = (np.diff(pks) / sample_rate) * 1000.0
             rr_list, rr_diff, rr_sqdiff = calc_rr_segment(rr_list, pks_b)
             _, tmp = calc_ts_measures(rr_list, rr_diff, rr_sqdiff)
             for k in tmp.keys():
                 s_measures = append_dict(s_measures, k, tmp[k])
-            s_measures = append_dict(s_measures, 'segment_indices', (i, ii))
-            s_working_data = append_dict(s_working_data, 'segment_indices', (i, ii))
-            s_working_data = append_dict(s_working_data, 'rr_list', rr_list)
-            s_working_data = append_dict(s_working_data, 'rr_diff', rr_diff)
-            s_working_data = append_dict(s_working_data, 'rr_sqdiff', rr_sqdiff)
-            s_working_data = append_dict(s_working_data, 'peaklist', peaklist)
+            s_measures = append_dict(s_measures, "segment_indices", (i, ii))
+            s_working_data = append_dict(s_working_data, "segment_indices", (i, ii))
+            s_working_data = append_dict(s_working_data, "rr_list", rr_list)
+            s_working_data = append_dict(s_working_data, "rr_diff", rr_diff)
+            s_working_data = append_dict(s_working_data, "rr_sqdiff", rr_sqdiff)
+            s_working_data = append_dict(s_working_data, "peaklist", peaklist)
 
     else:
-        raise ValueError('mode not understood! Needs to be either \'fast\' or \'full\', passed: %s' %mode)
+        raise ValueError(
+            "mode not understood! Needs to be either 'fast' or 'full', passed: %s"
+            % mode
+        )
 
     if replace_outliers:
-        if outlier_method.lower() == 'iqr':
+        if outlier_method.lower() == "iqr":
             for k in s_measures.keys():
-                if k not in ['nn20', 'nn50', 'interp_rr_function',
-                             'interp_rr_linspace', 'segment_indices']: #skip these measures
+                if k not in [
+                    "nn20",
+                    "nn50",
+                    "interp_rr_function",
+                    "interp_rr_linspace",
+                    "segment_indices",
+                ]:  # skip these measures
                     s_measures[k], _ = outliers_iqr_method(s_measures[k])
-        elif outlier_method.lower() == 'z-score':
+        elif outlier_method.lower() == "z-score":
             for k in s_measures.keys():
-                if k not in ['nn20', 'nn50', 'interp_rr_function',
-                             'interp_rr_linspace', 'segment_indices']: #skip these measures
+                if k not in [
+                    "nn20",
+                    "nn50",
+                    "interp_rr_function",
+                    "interp_rr_linspace",
+                    "segment_indices",
+                ]:  # skip these measures
                     s_measures[k], _ = outliers_modified_z(s_measures[k])
 
     return s_working_data, s_measures
 
 
-def process_rr(rr_list, threshold_rr=False, clean_rr=False,
-               clean_rr_method='quotient-filter', calc_freq=False,
-               freq_method='welch', welch_wsize=240, square_spectrum=True,
-               breathing_method='welch', measures={}, working_data={}):
-    '''process rr-list
+def process_rr(
+    rr_list,
+    threshold_rr=False,
+    clean_rr=False,
+    clean_rr_method="quotient-filter",
+    calc_freq=False,
+    freq_method="welch",
+    welch_wsize=240,
+    square_spectrum=True,
+    breathing_method="welch",
+    measures={},
+    working_data={},
+):
+    """process rr-list
 
     Function that takes and processes a list of peak-peak intervals (tachogram).
     Computes all measures as computed by the regular process() function, and
@@ -585,115 +713,151 @@ def process_rr(rr_list, threshold_rr=False, clean_rr=False,
 
     In this case it seems the filtering was necessary: without the RMSSD lies outside the
     range expected in healthy humans.
-    '''
+    """
 
-    working_data['RR_list'] = rr_list
+    working_data["RR_list"] = rr_list
 
     if threshold_rr:
-        #do thresholding pass
+        # do thresholding pass
         mean_rr = np.mean(rr_list)
-        upper_threshold = mean_rr + 300 if (0.3 * mean_rr) <= 300 else mean_rr + (0.3 * mean_rr)
-        lower_threshold = mean_rr - 300 if (0.3 * mean_rr) <= 300 else mean_rr - (0.3 * mean_rr)
-        rr_list_cor = [x for x in rr_list if x > lower_threshold and x < upper_threshold]
-        rr_mask = [1 if x <= lower_threshold or x >= upper_threshold else 0 for x in rr_list]
-        working_data['RR_list_cor'] = rr_list_cor
-        working_data['RR_masklist'] = rr_mask
+        upper_threshold = (
+            mean_rr + 300 if (0.3 * mean_rr) <= 300 else mean_rr + (0.3 * mean_rr)
+        )
+        lower_threshold = (
+            mean_rr - 300 if (0.3 * mean_rr) <= 300 else mean_rr - (0.3 * mean_rr)
+        )
+        rr_list_cor = [
+            x for x in rr_list if x > lower_threshold and x < upper_threshold
+        ]
+        rr_mask = [
+            1 if x <= lower_threshold or x >= upper_threshold else 0 for x in rr_list
+        ]
+        working_data["RR_list_cor"] = rr_list_cor
+        working_data["RR_masklist"] = rr_mask
 
     if clean_rr:
-        #do clean_rr pass
-        working_data = clean_rr_intervals(working_data = working_data, method = clean_rr_method)
+        # do clean_rr pass
+        working_data = clean_rr_intervals(
+            working_data=working_data, method=clean_rr_method
+        )
 
     if not threshold_rr and not clean_rr:
-        working_data['RR_list_cor'] = rr_list
-        working_data['RR_masklist'] = [0 for i in range(len(rr_list))]
+        working_data["RR_list_cor"] = rr_list
+        working_data["RR_masklist"] = [0 for i in range(len(rr_list))]
         rr_diff = np.abs(np.diff(rr_list))
         rr_sqdiff = np.power(rr_diff, 2)
     else:
-        rr_diff = np.abs(np.diff(working_data['RR_list_cor']))
+        rr_diff = np.abs(np.diff(working_data["RR_list_cor"]))
         rr_sqdiff = np.power(rr_diff, 2)
 
-    #compute ts measures
-    working_data, measures = calc_ts_measures(rr_list = working_data['RR_list_cor'], rr_diff = rr_diff,
-                                              rr_sqdiff = rr_sqdiff, measures = measures,
-                                              working_data = working_data)
+    # compute ts measures
+    working_data, measures = calc_ts_measures(
+        rr_list=working_data["RR_list_cor"],
+        rr_diff=rr_diff,
+        rr_sqdiff=rr_sqdiff,
+        measures=measures,
+        working_data=working_data,
+    )
 
-    measures = calc_poincare(rr_list = working_data['RR_list'], rr_mask = working_data['RR_masklist'],
-                             measures = measures, working_data = working_data)
+    measures = calc_poincare(
+        rr_list=working_data["RR_list"],
+        rr_mask=working_data["RR_masklist"],
+        measures=measures,
+        working_data=working_data,
+    )
     if calc_freq:
-        #compute freq measures
-        working_data, measures = calc_fd_measures(method=freq_method, welch_wsize=240, square_spectrum=square_spectrum,
-                                                  measures=measures, working_data=working_data)
+        # compute freq measures
+        working_data, measures = calc_fd_measures(
+            method=freq_method,
+            welch_wsize=240,
+            square_spectrum=square_spectrum,
+            measures=measures,
+            working_data=working_data,
+        )
 
-    #compute breathing
+    # compute breathing
     try:
-        measures, working_data = calc_breathing(working_data['RR_list_cor'], method = breathing_method,
-                                                measures=measures, working_data=working_data)
+        measures, working_data = calc_breathing(
+            working_data["RR_list_cor"],
+            method=breathing_method,
+            measures=measures,
+            working_data=working_data,
+        )
     except:
-        measures['breathingrate'] = np.nan
+        measures["breathingrate"] = np.nan
 
     return working_data, measures
 
 
 def run_tests(verbose=0):
-    '''
+    """
     function to run doctest on all of HeartPy
-    '''
+    """
 
-    from . import analysis, datautils, filtering, peakdetection, preprocessing, visualizeutils, config
+    from . import (
+        analysis,
+        datautils,
+        filtering,
+        peakdetection,
+        preprocessing,
+        visualizeutils,
+        config,
+    )
     import doctest
 
     succeeded = 0
 
-    print('testing config')
+    print("testing config")
     results = doctest.testmod(config, verbose=verbose)
-    if results.failed == 0: # pragma: no cover
-        print('success!')
+    if results.failed == 0:  # pragma: no cover
+        print("success!")
         succeeded += 1
 
-    print('testing analysis')
+    print("testing analysis")
     results = doctest.testmod(analysis, verbose=verbose)
-    if results.failed == 0: # pragma: no cover
-        print('success!')
+    if results.failed == 0:  # pragma: no cover
+        print("success!")
         succeeded += 1
 
-    print('testing datautils')
+    print("testing datautils")
     results = doctest.testmod(datautils, verbose=verbose)
-    if results.failed == 0: # pragma: no cover
-        print('success!')
+    if results.failed == 0:  # pragma: no cover
+        print("success!")
         succeeded += 1
 
-    print('testing filtering')
+    print("testing filtering")
     results = doctest.testmod(filtering, verbose=verbose)
-    if results.failed == 0: # pragma: no cover
-        print('success!')
+    if results.failed == 0:  # pragma: no cover
+        print("success!")
         succeeded += 1
 
-    print('testing peakdetection')
+    print("testing peakdetection")
     results = doctest.testmod(peakdetection, verbose=verbose)
-    if results.failed == 0: # pragma: no cover
-        print('success!')
+    if results.failed == 0:  # pragma: no cover
+        print("success!")
         succeeded += 1
 
-    print('testing preprocessing')
+    print("testing preprocessing")
     results = doctest.testmod(preprocessing, verbose=verbose)
-    if results.failed == 0: # pragma: no cover
-        print('success!')
+    if results.failed == 0:  # pragma: no cover
+        print("success!")
         succeeded += 1
 
-    print('testing visualization utils')
+    print("testing visualization utils")
     results = doctest.testmod(visualizeutils, verbose=verbose)
-    if results.failed == 0: # pragma: no cover
-        print('success!')
+    if results.failed == 0:  # pragma: no cover
+        print("success!")
         succeeded += 1
 
-    print('testing main processing pipeline')
+    print("testing main processing pipeline")
     from . import heartpy as hptester
+
     results = doctest.testmod(hptester, verbose=verbose)
-    if results.failed == 0: # pragma: no cover
-        print('success!')
+    if results.failed == 0:  # pragma: no cover
+        print("success!")
         succeeded += 1
 
-    if succeeded == 8: # pragma: no cover
-        print('all tests passed, ready to go!')
+    if succeeded == 8:  # pragma: no cover
+        print("all tests passed, ready to go!")
     else:
-        print('some tests failed...')
+        print("some tests failed...")

@@ -1,6 +1,6 @@
-'''
+"""
 Functions for loading and slicing data
-'''
+"""
 
 from datetime import datetime
 from pkg_resources import resource_filename
@@ -9,19 +9,22 @@ import numpy as np
 from scipy.io import loadmat
 from scipy.ndimage.filters import uniform_filter1d
 
-__all__ = ['get_data',
-           'get_samplerate_mstimer',
-           'get_samplerate_datetime',
-           'rolling_mean',
-           'outliers_iqr_method',
-           'outliers_modified_z',
-           'MAD',
-           'load_exampledata']
+__all__ = [
+    "get_data",
+    "get_samplerate_mstimer",
+    "get_samplerate_datetime",
+    "rolling_mean",
+    "outliers_iqr_method",
+    "outliers_modified_z",
+    "MAD",
+    "load_exampledata",
+]
 
 
-def get_data(filename, delim=',', column_name='None', encoding=None,
-             ignore_extension=False):
-    '''load data from file
+def get_data(
+    filename, delim=",", column_name="None", encoding=None, ignore_extension=False
+):
+    """load data from file
 
     Function to load data from a .CSV or .MAT file into numpy array.
     File can be accessed from local disk or url.
@@ -98,51 +101,63 @@ def get_data(filename, delim=',', column_name='None', encoding=None,
 
     >>> filepath = resource_filename(__name__, 'data/data2.log')
     >>> data = get_data(filepath, column_name = 'hr', ignore_extension = True)
-    '''
-    file_ext = filename.split('.')[-1]
-    if file_ext == 'csv' or file_ext == 'txt':
-        if column_name != 'None':
-            hrdata = np.genfromtxt(filename, delimiter=delim, names=True, dtype=None, encoding=None)
+    """
+    file_ext = filename.split(".")[-1]
+    if file_ext == "csv" or file_ext == "txt":
+        if column_name != "None":
+            hrdata = np.genfromtxt(
+                filename, delimiter=delim, names=True, dtype=None, encoding=None
+            )
             try:
                 hrdata = hrdata[column_name]
             except Exception as error:
-                raise LookupError('\nError loading column "%s" from file "%s". \
+                raise LookupError(
+                    '\nError loading column "%s" from file "%s". \
 Is column name specified correctly?\n The following error was provided: %s'
-                                 %(column_name, filename, error))
-        elif column_name == 'None':
+                    % (column_name, filename, error)
+                )
+        elif column_name == "None":
             hrdata = np.genfromtxt(filename, delimiter=delim, dtype=np.float64)
-        else: # pragma: no cover
-            raise LookupError('\nError: column name "%s" not found in header of "%s".\n'
-                              %(column_name, filename))
-    elif file_ext == 'mat':
+        else:  # pragma: no cover
+            raise LookupError(
+                '\nError: column name "%s" not found in header of "%s".\n'
+                % (column_name, filename)
+            )
+    elif file_ext == "mat":
         data = loadmat(filename)
         if column_name != "None":
             hrdata = np.array(data[column_name][:, 0], dtype=np.float64)
-        else: # pragma: no cover
-            raise LookupError('\nError: column name required for Matlab .mat files\n\n')
+        else:  # pragma: no cover
+            raise LookupError("\nError: column name required for Matlab .mat files\n\n")
     else:
         if ignore_extension:
-            if column_name != 'None':
-                hrdata = np.genfromtxt(filename, delimiter=delim, names=True, dtype=None, encoding=None)
+            if column_name != "None":
+                hrdata = np.genfromtxt(
+                    filename, delimiter=delim, names=True, dtype=None, encoding=None
+                )
                 try:
                     hrdata = hrdata[column_name]
                 except Exception as error:
-                    raise LookupError('\nError loading column "%s" from file "%s". \
+                    raise LookupError(
+                        '\nError loading column "%s" from file "%s". \
 Is column name specified correctly?\n'
-                                      %(column_name, filename))
-            elif column_name == 'None': # pragma: no cover
+                        % (column_name, filename)
+                    )
+            elif column_name == "None":  # pragma: no cover
                 hrdata = np.genfromtxt(filename, delimiter=delim, dtype=np.float64)
-            else: # pragma: no cover
-                raise LookupError('\nError: column name "%s" not found in header of "%s".\n'
-                                  %(column_name, filename))
+            else:  # pragma: no cover
+                raise LookupError(
+                    '\nError: column name "%s" not found in header of "%s".\n'
+                    % (column_name, filename)
+                )
         else:
-            raise IncorrectFileType('unknown file format')
+            raise IncorrectFileType("unknown file format")
             return None
     return hrdata
 
 
 def get_samplerate_mstimer(timerdata):
-    '''detemine sample rate based on ms timer
+    """detemine sample rate based on ms timer
 
     Function to determine sample rate of data from ms-based timer list or array.
 
@@ -170,13 +185,13 @@ def get_samplerate_mstimer(timerdata):
 
     of course if another time unit is used, converting it to ms-based
     should be trivial.
-    '''
-    sample_rate = ((len(timerdata) / (timerdata[-1]-timerdata[0]))*1000)
+    """
+    sample_rate = (len(timerdata) / (timerdata[-1] - timerdata[0])) * 1000
     return sample_rate
 
 
-def get_samplerate_datetime(datetimedata, timeformat='%H:%M:%S.%f'):
-    '''determine sample rate based on datetime
+def get_samplerate_datetime(datetimedata, timeformat="%H:%M:%S.%f"):
+    """determine sample rate based on datetime
 
     Function to determine sample rate of data from datetime-based timer
     list or array.
@@ -208,16 +223,20 @@ def get_samplerate_datetime(datetimedata, timeformat='%H:%M:%S.%f'):
 
     >>> round(get_samplerate_datetime(timer, timeformat = '%Y-%m-%d %H:%M:%S.%f'), 3)
     100.42
-    '''
-    datetimedata = np.asarray(datetimedata, dtype='str') #cast as str in case of np.bytes type
-    elapsed = ((datetime.strptime(datetimedata[-1], timeformat) -
-                datetime.strptime(datetimedata[0], timeformat)).total_seconds())
-    sample_rate = (len(datetimedata) / elapsed)
+    """
+    datetimedata = np.asarray(
+        datetimedata, dtype="str"
+    )  # cast as str in case of np.bytes type
+    elapsed = (
+        datetime.strptime(datetimedata[-1], timeformat)
+        - datetime.strptime(datetimedata[0], timeformat)
+    ).total_seconds()
+    sample_rate = len(datetimedata) / elapsed
     return sample_rate
 
 
 def rolling_mean(data, windowsize, sample_rate):
-    '''calculates rolling mean
+    """calculates rolling mean
 
     Function to calculate the rolling mean (also: moving average) over the passed data.
 
@@ -246,14 +265,16 @@ def rolling_mean(data, windowsize, sample_rate):
     array([514.49333333, 514.49333333, 514.49333333, 514.46666667,
            514.45333333, 514.45333333, 514.45333333, 514.45333333,
            514.48      , 514.52      ])
-    '''
+    """
 
-    rol_mean = uniform_filter1d(np.asarray(data, dtype='float'), size=int(windowsize*sample_rate))
+    rol_mean = uniform_filter1d(
+        np.asarray(data, dtype="float"), size=int(windowsize * sample_rate)
+    )
     return rol_mean
 
 
 def outliers_iqr_method(hrvalues):
-    '''removes outliers
+    """removes outliers
 
     Function that removes outliers based on the interquartile range method and
     substitutes them for the median
@@ -275,7 +296,7 @@ def outliers_iqr_method(hrvalues):
     >>> x = [2, 4, 3, 4, 6, 7, 35, 2, 3, 4]
     >>> outliers_iqr_method(x)
     ([2, 4, 3, 4, 6, 7, 4.0, 2, 3, 4], [6])
-    '''
+    """
     med = np.median(hrvalues)
     q1, q3 = np.percentile(hrvalues, [25, 75])
     iqr = q3 - q1
@@ -283,7 +304,7 @@ def outliers_iqr_method(hrvalues):
     upper = q3 + (1.5 * iqr)
     output = []
     replaced_indices = []
-    for i in range(0,len(hrvalues)):
+    for i in range(0, len(hrvalues)):
         if hrvalues[i] < lower or hrvalues[i] > upper:
             output.append(med)
             replaced_indices.append(i)
@@ -293,7 +314,7 @@ def outliers_iqr_method(hrvalues):
 
 
 def outliers_modified_z(hrvalues):
-    '''removes outliers
+    """removes outliers
 
     Function that removes outliers based on the modified Z-score metric and
     substitutes them for the median
@@ -314,7 +335,7 @@ def outliers_modified_z(hrvalues):
     >>> x = [2, 4, 3, 4, 6, 7, 35, 2, 3, 4]
     >>> outliers_modified_z(x)
     ([2, 4, 3, 4, 6, 7, 4.0, 2, 3, 4], [6])
-    '''
+    """
     hrvalues = np.array(hrvalues)
     threshold = 3.5
     med = np.median(hrvalues)
@@ -332,7 +353,7 @@ def outliers_modified_z(hrvalues):
 
 
 def MAD(data):
-    '''computes median absolute deviation
+    """computes median absolute deviation
 
     Function that compute median absolute deviation of data slice
     See: https://en.wikipedia.org/wiki/Median_absolute_deviation
@@ -352,13 +373,13 @@ def MAD(data):
     >>> x = [2, 4, 3, 4, 6, 7, 35, 2, 3, 4]
     >>> MAD(x)
     1.5
-    '''
+    """
     med = np.median(data)
     return np.median(np.abs(data - med))
 
 
 def load_exampledata(example=0):
-    '''loads example data
+    """loads example data
 
     Function to load one of the example datasets included in HeartPy
     and used in the documentation.
@@ -396,26 +417,28 @@ def load_exampledata(example=0):
     >>> data, timer = load_exampledata(1)
     >>> [round(x, 2) for x in timer[0:5]]
     [0.0, 8.55, 17.1, 25.64, 34.19]
-    '''
+    """
 
     timer = []
 
     if example == 0:
-        path = path = 'data/data.csv'
+        path = path = "data/data.csv"
         filepath = resource_filename(__name__, path)
         data = get_data(filepath)
     elif example == 1:
-        path = path = 'data/data2.csv'
+        path = path = "data/data2.csv"
         filepath = resource_filename(__name__, path)
-        data = get_data(filepath, column_name = 'hr')
-        timer = get_data(filepath, column_name = 'timer')
+        data = get_data(filepath, column_name="hr")
+        timer = get_data(filepath, column_name="timer")
     elif example == 2:
-        path = path = 'data/data3.csv'
+        path = path = "data/data3.csv"
         filepath = resource_filename(__name__, path)
-        data = get_data(filepath, column_name = 'hr')
-        timer = get_data(filepath, column_name = 'datetime')
+        data = get_data(filepath, column_name="hr")
+        timer = get_data(filepath, column_name="datetime")
     else:
-        raise ValueError('Incorrect data file specified.\
-available datafiles are data.csv (0), data2.csv(1), data3.csv(2).')
+        raise ValueError(
+            "Incorrect data file specified.\
+available datafiles are data.csv (0), data2.csv(1), data3.csv(2)."
+        )
 
     return data, timer

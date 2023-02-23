@@ -5,7 +5,7 @@ import os
 from models.resnet_cbam import resnet34_cbam
 import torch.nn.functional as F
 
-__all__ = ['Supcon_resnet34_cbam']
+__all__ = ["Supcon_resnet34_cbam"]
 
 
 class EncoderNet_resnet34_cbam(nn.Module):
@@ -21,32 +21,34 @@ class EncoderNet_resnet34_cbam(nn.Module):
             encoder_model.layer2,
             encoder_model.layer3,
             encoder_model.layer4,
-            encoder_model.avgpool
+            encoder_model.avgpool,
         )
         self.encoder_feature_dim = encoder_feature_dim
 
     def forward(self, x):
-        '''
+        """
         @param x:
         @return: shape(batchsize, 512)
-        '''
+        """
         x = self.encoder(x)
         x = x.view(x.size(0), -1)
         return x
 
 
 class Supcon(nn.Module):
-    def __init__(self, encoder_model, head='mlp', feature_dim=128):
+    def __init__(self, encoder_model, head="mlp", feature_dim=128):
         super(Supcon, self).__init__()
         self.encoder = encoder_model
         self.feature_dim = feature_dim
-        if head == 'linear':
+        if head == "linear":
             self.head = nn.Linear(self.encoder.encoder_feature_dim, self.feature_dim)
-        elif head == 'mlp':
+        elif head == "mlp":
             self.head = nn.Sequential(
-                nn.Linear(self.encoder.encoder_feature_dim, self.encoder.encoder_feature_dim),
+                nn.Linear(
+                    self.encoder.encoder_feature_dim, self.encoder.encoder_feature_dim
+                ),
                 nn.ReLU(inplace=True),
-                nn.Linear(self.encoder.encoder_feature_dim, self.feature_dim)
+                nn.Linear(self.encoder.encoder_feature_dim, self.feature_dim),
             )
 
     def forward(self, x, pretrain=False):
@@ -59,7 +61,5 @@ class Supcon(nn.Module):
 
 def Supcon_resnet34_cbam(**kwargs):
     rs34_cbam_encoder = EncoderNet_resnet34_cbam()
-    model = Supcon(rs34_cbam_encoder, head='mlp', feature_dim=128)
+    model = Supcon(rs34_cbam_encoder, head="mlp", feature_dim=128)
     return model
-
-

@@ -7,8 +7,8 @@ __version__ = "Version 1.2.6"
 __license__ = "GNU General Public License V3.0"
 
 
-#module level docstring
-__doc__ = '''
+# module level docstring
+__doc__ = """
 Noise-resistant heart rate analysis module for Python
 =====================================================
 
@@ -34,4 +34,4 @@ DOI: http://doi.org/10.5334/jors.241
 Documentation
 -------------
 https://python-heart-rate-analysis-toolkit.readthedocs.io/en/latest/
-'''
+"""

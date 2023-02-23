@@ -1,6 +1,6 @@
-'''
+"""
 functions for peak detection and related tasks
-'''
+"""
 
 import numpy as np
 from scipy.signal import resample
@@ -9,17 +9,19 @@ from .analysis import calc_rr, update_rr
 from .exceptions import BadSignalWarning
 
 
-__all__ = ['make_windows',
-           'append_dict',
-           'detect_peaks',
-           'fit_peaks',
-           'check_peaks',
-           'check_binary_quality',
-           'interpolate_peaks']
+__all__ = [
+    "make_windows",
+    "append_dict",
+    "detect_peaks",
+    "fit_peaks",
+    "check_peaks",
+    "check_binary_quality",
+    "interpolate_peaks",
+]
 
 
 def make_windows(data, sample_rate, windowsize=120, overlap=0, min_size=20):
-    '''slices data into windows
+    """slices data into windows
 
     Funcion that slices data into windows for concurrent analysis.
     Used by process_segmentwise wrapper function.
@@ -65,7 +67,7 @@ def make_windows(data, sample_rate, windowsize=120, overlap=0, min_size=20):
     Specifying min_size = -1 will include the last window no matter what:
 
     >>> indices = make_windows(data, 100.0, windowsize = 30, overlap = 0.5, min_size = -1)
-    '''
+    """
     ln = len(data)
     window = windowsize * sample_rate
     stepsize = (1 - overlap) * window
@@ -87,7 +89,7 @@ def make_windows(data, sample_rate, windowsize=120, overlap=0, min_size=20):
 
 
 def append_dict(dict_obj, measure_key, measure_value):
-    '''appends data to keyed dict.
+    """appends data to keyed dict.
 
     Function that appends key to continuous dict, creates if doesn't exist. EAFP
 
@@ -125,7 +127,7 @@ def append_dict(dict_obj, measure_key, measure_value):
     >>> example = append_dict(example, 'different_key', 'hello there!')
     >>> sorted(example.keys())
     ['call', 'different_key']
-    '''
+    """
     try:
         dict_obj[measure_key].append(measure_value)
     except KeyError:
@@ -133,8 +135,10 @@ def append_dict(dict_obj, measure_key, measure_value):
     return dict_obj
 
 
-def detect_peaks(hrdata, rol_mean, ma_perc, sample_rate, update_dict=True, working_data={}):
-    '''detect peaks in signal
+def detect_peaks(
+    hrdata, rol_mean, ma_perc, sample_rate, update_dict=True, working_data={}
+):
+    """detect peaks in signal
 
     Function that detects heartrate peaks in the given dataset.
 
@@ -175,44 +179,45 @@ def detect_peaks(hrdata, rol_mean, ma_perc, sample_rate, update_dict=True, worki
 
     >>> wd['peaklist'][0:5]
     array([ 63, 165, 264, 360, 460], dtype=int64)
-    '''
+    """
     rmean = np.array(rol_mean)
 
-    #rol_mean = rmean + ((rmean / 100) * ma_perc)
+    # rol_mean = rmean + ((rmean / 100) * ma_perc)
     mn = np.mean(rmean / 100) * ma_perc
     rol_mean = rmean + mn
 
     peaksx = np.where((hrdata > rol_mean))[0]
     peaksy = hrdata[peaksx]
-    peakedges = np.concatenate((np.array([0]),
-                                (np.where(np.diff(peaksx) > 1)[0]),
-                                np.array([len(peaksx)])))
+    peakedges = np.concatenate(
+        (np.array([0]), (np.where(np.diff(peaksx) > 1)[0]), np.array([len(peaksx)]))
+    )
     peaklist = []
 
-    for i in range(0, len(peakedges)-1):
+    for i in range(0, len(peakedges) - 1):
         try:
-            y_values = peaksy[peakedges[i]:peakedges[i+1]].tolist()
+            y_values = peaksy[peakedges[i] : peakedges[i + 1]].tolist()
             peaklist.append(peaksx[peakedges[i] + y_values.index(max(y_values))])
         except:
             pass
 
     if update_dict:
-        working_data['peaklist'] = peaklist
-        working_data['ybeat'] = [hrdata[x] for x in peaklist]
-        working_data['rolling_mean'] = rol_mean
-        working_data = calc_rr(working_data['peaklist'], sample_rate,
-                               working_data=working_data)
-        if len(working_data['RR_list']) > 0:
-            working_data['rrsd'] = np.std(working_data['RR_list'])
+        working_data["peaklist"] = peaklist
+        working_data["ybeat"] = [hrdata[x] for x in peaklist]
+        working_data["rolling_mean"] = rol_mean
+        working_data = calc_rr(
+            working_data["peaklist"], sample_rate, working_data=working_data
+        )
+        if len(working_data["RR_list"]) > 0:
+            working_data["rrsd"] = np.std(working_data["RR_list"])
         else:
-            working_data['rrsd'] = np.inf
+            working_data["rrsd"] = np.inf
         return working_data
     else:
         return peaklist, working_data
 
 
 def fit_peaks(hrdata, rol_mean, sample_rate, bpmmin=40, bpmmax=180, working_data={}):
-    '''optimize for best peak detection
+    """optimize for best peak detection
 
     Function that runs fitting with varying peak detection thresholds given a
     heart rate signal.
@@ -278,39 +283,72 @@ def fit_peaks(hrdata, rol_mean, sample_rate, bpmmin=40, bpmmax=180, working_data
 
     >>> wd['RR_list'][0:4]
     array([1020.,  990.,  960., 1000.])
-    '''
+    """
 
     # moving average values to test
-    ma_perc_list = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 150, 200, 300]
+    ma_perc_list = [
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        40,
+        50,
+        60,
+        70,
+        80,
+        90,
+        100,
+        110,
+        120,
+        150,
+        200,
+        300,
+    ]
 
     rrsd = []
     valid_ma = []
 
     for ma_perc in ma_perc_list:
-        working_data = detect_peaks(hrdata, rol_mean, ma_perc, sample_rate,
-                                    update_dict=True, working_data=working_data)
-        bpm = ((len(working_data['peaklist'])/(len(hrdata)/sample_rate))*60)
-        rrsd.append([working_data['rrsd'], bpm, ma_perc])
+        working_data = detect_peaks(
+            hrdata,
+            rol_mean,
+            ma_perc,
+            sample_rate,
+            update_dict=True,
+            working_data=working_data,
+        )
+        bpm = (len(working_data["peaklist"]) / (len(hrdata) / sample_rate)) * 60
+        rrsd.append([working_data["rrsd"], bpm, ma_perc])
 
     for _rrsd, _bpm, _ma_perc in rrsd:
         if (_rrsd > 0.1) and ((bpmmin <= _bpm <= bpmmax)):
             valid_ma.append([_rrsd, _ma_perc])
 
     if len(valid_ma) > 0:
-        working_data['best'] = min(valid_ma, key=lambda t: t[0])[1]
-        working_data = detect_peaks(hrdata, rol_mean, min(valid_ma, key=lambda t: t[0])[1],
-                                    sample_rate, update_dict=True, working_data=working_data)
+        working_data["best"] = min(valid_ma, key=lambda t: t[0])[1]
+        working_data = detect_peaks(
+            hrdata,
+            rol_mean,
+            min(valid_ma, key=lambda t: t[0])[1],
+            sample_rate,
+            update_dict=True,
+            working_data=working_data,
+        )
         return working_data
     else:
-        raise BadSignalWarning('\n----------------\nCould not determine best fit for \
+        raise BadSignalWarning(
+            "\n----------------\nCould not determine best fit for \
 given signal. Please check the source signal.\n Probable causes:\n- detected heart rate falls \
 outside of bpmmin<->bpmmax constraints\n- no detectable heart rate present in signal\n\
-- very noisy signal (consider filtering and scaling)\nIf you\'re sure the signal contains heart\
-rate data, consider filtering and/or scaling first.\n----------------\n')
+- very noisy signal (consider filtering and scaling)\nIf you're sure the signal contains heart\
+rate data, consider filtering and/or scaling first.\n----------------\n"
+        )
 
 
 def check_peaks(rr_arr, peaklist, ybeat, reject_segmentwise=False, working_data={}):
-    '''find anomalous peaks.
+    """find anomalous peaks.
 
     Funcion that checks peaks for outliers based on anomalous peak-peak distances and corrects
     by excluding them from further analysis.
@@ -346,7 +384,7 @@ def check_peaks(rr_arr, peaklist, ybeat, reject_segmentwise=False, working_data=
     --------
     Part of peak detection pipeline. No standalone examples exist. See docstring
     for hp.process() function for more info
-    '''
+    """
 
     rr_arr = np.array(rr_arr)
     peaklist = np.array(peaklist)
@@ -365,14 +403,16 @@ def check_peaks(rr_arr, peaklist, ybeat, reject_segmentwise=False, working_data=
     # identify peaks to exclude based on RR interval
     rem_idx = np.where((rr_arr <= lower_threshold) | (rr_arr >= upper_threshold))[0] + 1
 
-    working_data['removed_beats'] = peaklist[rem_idx]
-    working_data['removed_beats_y'] = ybeat[rem_idx]
-    working_data['binary_peaklist'] = np.asarray([0 if x in working_data['removed_beats']
-                                                  else 1 for x in peaklist])
+    working_data["removed_beats"] = peaklist[rem_idx]
+    working_data["removed_beats_y"] = ybeat[rem_idx]
+    working_data["binary_peaklist"] = np.asarray(
+        [0 if x in working_data["removed_beats"] else 1 for x in peaklist]
+    )
 
     if reject_segmentwise:
-        working_data = check_binary_quality(peaklist, working_data['binary_peaklist'],
-                                            working_data=working_data)
+        working_data = check_binary_quality(
+            peaklist, working_data["binary_peaklist"], working_data=working_data
+        )
 
     working_data = update_rr(working_data=working_data)
 
@@ -380,7 +420,7 @@ def check_peaks(rr_arr, peaklist, ybeat, reject_segmentwise=False, working_data=
 
 
 def check_binary_quality(peaklist, binary_peaklist, maxrejects=3, working_data={}):
-    '''checks signal in chunks of 10 beats.
+    """checks signal in chunks of 10 beats.
 
     Function that checks signal in chunks of 10 beats. It zeros out chunk if
     number of rejected peaks > maxrejects. Also marks rejected segment coordinates
@@ -421,22 +461,28 @@ def check_binary_quality(peaklist, binary_peaklist, maxrejects=3, working_data={
 
     The whole segment is rejected as it contains more than the specified 3 rejections
     per 10 beats.
-    '''
+    """
     idx = 0
-    working_data['rejected_segments'] = []
+    working_data["rejected_segments"] = []
     for i in range(int(len(binary_peaklist) / 10)):
-        if np.bincount(binary_peaklist[idx:idx + 10])[0] > maxrejects:
-            binary_peaklist[idx:idx + 10] = [0 for i in range(len(binary_peaklist[idx:idx+10]))]
+        if np.bincount(binary_peaklist[idx : idx + 10])[0] > maxrejects:
+            binary_peaklist[idx : idx + 10] = [
+                0 for i in range(len(binary_peaklist[idx : idx + 10]))
+            ]
             if idx + 10 < len(peaklist):
-                working_data['rejected_segments'].append((peaklist[idx], peaklist[idx + 10]))
+                working_data["rejected_segments"].append(
+                    (peaklist[idx], peaklist[idx + 10])
+                )
             else:
-                working_data['rejected_segments'].append((peaklist[idx], peaklist[-1]))
+                working_data["rejected_segments"].append((peaklist[idx], peaklist[-1]))
         idx += 10
     return working_data
 
 
-def interpolate_peaks(data, peaks, sample_rate, desired_sample_rate=1000.0, working_data={}):
-    '''interpolate detected peak positions and surrounding data points
+def interpolate_peaks(
+    data, peaks, sample_rate, desired_sample_rate=1000.0, working_data={}
+):
+    """interpolate detected peak positions and surrounding data points
 
     Function that enables high-precision mode by taking the estimated peak position,
     then upsampling the peak position +/- 100ms to the specified sampling rate, subsequently
@@ -483,8 +529,10 @@ def interpolate_peaks(data, peaks, sample_rate, desired_sample_rate=1000.0, work
 
     As you can see the accuracy of peak positions has increased.
     Note that you cannot magically upsample nothing into something. Be reasonable.
-    '''
-    assert desired_sample_rate > sample_rate, "desired sample rate is lower than actual sample rate \
+    """
+    assert (
+        desired_sample_rate > sample_rate
+    ), "desired sample rate is lower than actual sample rate \
 this would result in downsampling which will hurt accuracy."
 
     num_samples = int(0.1 * sample_rate)
@@ -493,11 +541,13 @@ this would result in downsampling which will hurt accuracy."
     peaks = []
 
     for i in interpolation_slices:
-        slice = data[i[0]:i[1]]
-        resampled = resample(slice, int(len(slice) * (desired_sample_rate / sample_rate)))
+        slice = data[i[0] : i[1]]
+        resampled = resample(
+            slice, int(len(slice) * (desired_sample_rate / sample_rate))
+        )
         peakpos = np.argmax(resampled)
         peaks.append((i[0] + (peakpos * ratio)))
 
-    working_data['peaklist'] = np.asarray(peaks)
+    working_data["peaklist"] = np.asarray(peaks)
 
     return working_data
