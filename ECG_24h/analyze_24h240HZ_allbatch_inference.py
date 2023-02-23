@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import tqdm
 
+from U_net.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 from data_process import (
     resample,
     U_net_peak,
@@ -13,6 +14,10 @@ from data_process import (
     BSW,
 )
 from dataset import transform
+
+# The two classes must be imported, otherwise the model cannot be loaded.
+# noinspection PyStatementEffect
+CBR_1D, Unet_1D
 
 
 # import os
