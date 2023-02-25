@@ -849,56 +849,66 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     data_24h_file_dir = config.dir_24h
 
-    """
-     ①提取R波切分心拍
+    # ①提取R波切分心拍
 
     with torch.no_grad():
-        Unet = torch.load('U_net/240HZ_t+c_v2_best.pt', map_location=device)
+        Unet = torch.load("U_net/240HZ_t+c_v2_best.pt", map_location=device)
         Unet.eval()
         # MRUnet = torch.load('MultiResUnet/240HZ_multiresunet_nf_16_v0_best.pt')
         # MRUnet.eval()
         for i in os.listdir(data_24h_file_dir):
-                with open(os.path.join(config.beats_24h,'{}-beats.txt'.format(i.split('.')[0])),'w',encoding='utf-8') as output1:
-                    with open(os.path.join(config.R_24h,'{}-Rpeaks.txt'.format(i.split('.')[0])),'w',encoding='utf-8') as output2:
-                        # beats,R_peaks,segmentaion_dict,novote_segmentation_dict = get_24h_Beats(i,data_24h_file_dir,Unet = Unet,device=device, fs = fs,ori_fs = ori_fs)
-                        beats, R_peaks = get_24h_Beats(i, data_24h_file_dir,
-                                                       Unet=Unet,
-                                                       device=device, fs=fs,
-                                                       ori_fs=ori_fs)
-                        # with open(os.path.join(config.R_24h, '{}-SegDict.json'.format(i.split('.')[0])), 'w', encoding='UTF-8') as fout:
-                        #     fout.write(json.dumps(segmentaion_dict))
-                        # with open(os.path.join(config.R_24h, '{}-NoVoteSegDict.json'.format(i.split('.')[0])), 'w', encoding='UTF-8') as fout:
-                        #     fout.write(json.dumps(novote_segmentation_dict))
-                        print("{}-{}".format(i,len(beats)))
-                        output1.write(i)
-                        for beat in beats:
-                            output1.write(',')
-                            output1.write(str(beat))
-                        output1.write('\n')
-                        output2.write(i)
-                        for R_peak in R_peaks:
-                            output2.write(',')
-                            output2.write(str(R_peak))
-                        output2.write('\n')
-                    output2.close()
-                output1.close()
-
+            with open(
+                os.path.join(config.beats_24h, "{}-beats.txt".format(i.split(".")[0])),
+                "w",
+                encoding="utf-8",
+            ) as output1:
+                with open(
+                    os.path.join(config.R_24h, "{}-Rpeaks.txt".format(i.split(".")[0])),
+                    "w",
+                    encoding="utf-8",
+                ) as output2:
+                    # beats,R_peaks,segmentaion_dict,novote_segmentation_dict = get_24h_Beats(i,data_24h_file_dir,Unet = Unet,device=device, fs = fs,ori_fs = ori_fs)
+                    beats, R_peaks = get_24h_Beats(
+                        i,
+                        data_24h_file_dir,
+                        Unet=Unet,
+                        device=device,
+                        fs=fs,
+                        ori_fs=ori_fs,
+                    )
+                    # with open(os.path.join(config.R_24h, '{}-SegDict.json'.format(i.split('.')[0])), 'w', encoding='UTF-8') as fout:
+                    #     fout.write(json.dumps(segmentaion_dict))
+                    # with open(os.path.join(config.R_24h, '{}-NoVoteSegDict.json'.format(i.split('.')[0])), 'w', encoding='UTF-8') as fout:
+                    #     fout.write(json.dumps(novote_segmentation_dict))
+                    print("{}-{}".format(i, len(beats)))
+                    output1.write(i)
+                    for beat in beats:
+                        output1.write(",")
+                        output1.write(str(beat))
+                    output1.write("\n")
+                    output2.write(i)
+                    for R_peak in R_peaks:
+                        output2.write(",")
+                        output2.write(str(R_peak))
+                    output2.write("\n")
+                output2.close()
+            output1.close()
 
     # ②补充心拍
     # #
 
     for beat_file in os.listdir(config.beats_24h):
-        data_name = beat_file.split('-')[0]
-        beats_in = open(os.path.join(config.beats_24h,beat_file))
-        rpeak_in = open(os.path.join(config.R_24h,data_name+'-Rpeaks.txt'))
-        beats = beats_in.readline().split(',')[1:]
-        rpeaks = rpeak_in.readline().split(',')[1:]
+        data_name = beat_file.split("-")[0]
+        beats_in = open(os.path.join(config.beats_24h, beat_file))
+        rpeak_in = open(os.path.join(config.R_24h, data_name + "-Rpeaks.txt"))
+        beats = beats_in.readline().split(",")[1:]
+        rpeaks = rpeak_in.readline().split(",")[1:]
         if not len(beats) == len(rpeaks):
-            print("error:提取出的心拍数量{}与R波数量{}不同".format(len(beats),len(rpeaks)))
+            print("error:提取出的心拍数量{}与R波数量{}不同".format(len(beats), len(rpeaks)))
             continue
-        add_num, checked_mybeats = check_beats(beats,rpeaks,fs=240)
+        add_num, checked_mybeats = check_beats(beats, rpeaks, fs=240)
         print("补充了{}个心拍".format(add_num))
-        save_mybeats(checked_mybeats,data_name+'-mybeats.txt', config.mybeats_24h)
+        save_mybeats(checked_mybeats, data_name + "-mybeats.txt", config.mybeats_24h)
 
     # """
 
