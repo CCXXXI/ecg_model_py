@@ -267,7 +267,7 @@ def classification_beats(
                 x = torch.vstack(input_tensor)
                 output = torch.softmax(Resnet(x), dim=1).squeeze()
                 # 是否有用
-                output = torch.softmax(output, dim=0, dtype=torch.float32)
+                # output = torch.softmax(output, dim=0, dtype=torch.float32)
 
                 # 修改维度
                 y_pred = torch.argmax(output, dim=1, keepdim=False)
