@@ -1,2 +1,0 @@
-nohup: ignoring input
-补充了2个心拍
