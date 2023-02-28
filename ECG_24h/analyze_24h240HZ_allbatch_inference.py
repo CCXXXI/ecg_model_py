@@ -1,11 +1,17 @@
+import math
 import os
 import time
 
 import numpy as np
 import torch
 import tqdm
+from scipy import integrate
+from scipy.interpolate import interp1d
 
+import models
 from U_net.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
+from config import config
+from data_process import name2index
 from data_process import (
     resample,
     U_net_peak,
@@ -161,8 +167,6 @@ def classification_beats(
     print("###正在分类心拍###")
     start = time.time()
 
-    from data_process import name2index
-
     name2idx = name2index(config.arrythmia)
     idx2name = {idx: name for name, idx in name2idx.items()}
     name2cnt = {name: 0 for name in name2idx.keys()}
@@ -259,10 +263,6 @@ def load_mybeats(data_name, load_dir):
 
 
 def get_lfhf(rr_intervals, rr_interval_times):
-    from scipy.interpolate import interp1d
-    from scipy import integrate
-    import numpy as np
-
     resampling_period = 0.5
     interpolation_method = "spline"
     if interpolation_method == "spline":
@@ -331,8 +331,6 @@ def sampletotime(position, fs):
 
 
 def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
-    import math
-
     N_diff = []
     N_time = []
     N_diff_flatten_with_rpeak = []
@@ -763,9 +761,6 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
 
 
 if __name__ == "__main__":
-    from config import config
-    import models
-
     os.makedirs(config.beats_24h, exist_ok=True)
     os.makedirs(config.R_24h, exist_ok=True)
     os.makedirs(config.mybeats_24h, exist_ok=True)

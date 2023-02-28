@@ -1,15 +1,15 @@
+import math
+
 import numpy as np
-import scipy.signal as signal
 import torch
 import torch.nn.functional as F
+from scipy import signal
 
 # 保证每次划分数据一致
 np.random.seed(41)
 
 
 def BSW(data, band_hz=0.5, fs=240):
-    from scipy import signal
-
     wn1 = 2 * band_hz / fs  # 只截取5hz以上的数据
     b, a = signal.butter(1, wn1, btype="high")
     filteddata = signal.filtfilt(b, a, data)
@@ -137,7 +137,6 @@ def R_Detection_U_net(data, N):
 
 def U_net_RPEAK(x):
     # 获取心拍
-    import math
 
     lenx = len(x)
     x_ = np.array(x)
