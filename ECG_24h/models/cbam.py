@@ -40,8 +40,6 @@ class BasicConv(nn.Module):
         x = self.conv(x)
         if self.bn is not None:
             x = self.bn(x)
-        if self.relu is not None:
-            x = self.relu(x)
         return x
 
 
@@ -71,13 +69,6 @@ class ChannelGate(nn.Module):
             elif pool_type == "max":
                 max_pool = F.max_pool1d(x, x.size(2), stride=x.size(2))
                 channel_att_raw = self.mlp(max_pool)
-            elif pool_type == "lp":
-                lp_pool = F.lp_pool1d(x, 2, x.size(2), stride=x.size(2))
-                channel_att_raw = self.mlp(lp_pool)
-            elif pool_type == "lse":
-                # LSE pool only
-                lse_pool = logsumexp_1d(x)
-                channel_att_raw = self.mlp(lse_pool)
 
             if channel_att_sum is None:
                 channel_att_sum = channel_att_raw
@@ -86,15 +77,6 @@ class ChannelGate(nn.Module):
 
         scale = torch.sigmoid(channel_att_sum).unsqueeze(2).expand_as(x)
         return x * scale
-
-
-def logsumexp_1d(tensor):
-    # tensor_flatten = tensor.view(tensor.size(0), tensor.size(1), -1)
-    tensor_flatten = tensor.view(tensor.size(0), -1)
-    # s, _ = torch.max(tensor_flatten, dim=2, keepdim=True)
-    s = torch.max(tensor_flatten, dim=1, keepdim=True)
-    outputs = s + (tensor_flatten - s).exp().sum(dim=1, keepdim=True).log()
-    return outputs
 
 
 class ChannelPool(nn.Module):

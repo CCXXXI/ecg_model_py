@@ -12,13 +12,6 @@ from torch.nn import init
 __all__ = [
     "BasicBlock",
     "ResNet",
-    "resnet18_cbam",
-    "resnet34_cbam",
-    "resnet50_cbam",
-    "resnet101_cbam",
-    "resnet152_cbam",
-    "resnet34_cbam_drp3",
-    "resnet34_cbam_ch9",
     "resnet34_cbam_ch1",
 ]
 
@@ -70,63 +63,6 @@ class BasicBlock(nn.Module):
             residual = self.downsample(x)
         if not self.cbam is None:
             out = self.cbam(out)
-        out += residual
-        out = self.relu(out)
-
-        return out
-
-
-class Bottleneck(nn.Module):
-    expansion = 4
-
-    def __init__(
-        self,
-        inplanes,
-        planes,
-        stride=1,
-        downsample=None,
-        use_cbam=False,
-        dropout_rate=0.2,
-    ):
-        super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv1d(inplanes, planes, kernel_size=7, bias=False, padding=3)
-        self.bn1 = nn.BatchNorm1d(planes)
-        self.conv2 = nn.Conv1d(
-            planes, planes, kernel_size=11, stride=stride, padding=5, bias=False
-        )
-        self.bn2 = nn.BatchNorm1d(planes)
-        self.conv3 = nn.Conv1d(planes, planes * 4, kernel_size=7, bias=False, padding=3)
-        self.bn3 = nn.BatchNorm1d(planes * 4)
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
-        # self.dropout = nn.Dropout(.2)
-        self.dropout = nn.Dropout(dropout_rate)
-
-        if use_cbam:
-            self.cbam = CBAM(planes * 4, 16)
-
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.dropout(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        if not self.cbam is None:
-            out = self.cbam(out)
-
         out += residual
         out = self.relu(out)
 
@@ -265,38 +201,6 @@ class ResNet(nn.Module):
         return x
 
 
-def resnet18_cbam(pretrained=False, **kwargs):
-    """Constructs a ResNet-18 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(BasicBlock, [2, 2, 2, 2], att_type="CBAM", **kwargs)
-    return model
-
-
-def resnet34_cbam(pretrained=False, **kwargs):
-    """Constructs a ResNet-34 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], att_type="CBAM", **kwargs)
-    return model
-
-
-def resnet34_cbam_ch9(pretrained=False, **kwargs):
-    """Constructs a ResNet-34-CBAM model with 9 channels.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(
-        BasicBlock, [3, 4, 6, 3], att_type="CBAM", initial_channel=9, **kwargs
-    )
-    return model
-
-
 def resnet34_cbam_ch1(pretrained=False, **kwargs):
     """Constructs a ResNet-34-CBAM model with 1 channels.
 
@@ -307,60 +211,3 @@ def resnet34_cbam_ch1(pretrained=False, **kwargs):
         BasicBlock, [3, 4, 6, 3], att_type="CBAM", initial_channel=1, **kwargs
     )
     return model
-
-
-def resnet34_cbam_drp3(pretrained=False, **kwargs):
-    """Constructs a ResNet-34_CBAM model.
-    dropout_rate = 0.3
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(
-        BasicBlock, [3, 4, 6, 3], att_type="CBAM", dropout_rate=0.3, **kwargs
-    )
-    return model
-
-
-def resnet50_cbam(pretrained=False, **kwargs):
-    """Constructs a ResNet-50 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(Bottleneck, [3, 4, 6, 3], att_type="CBAM", **kwargs)
-    return model
-
-
-def resnet101_cbam(pretrained=False, **kwargs):
-    """Constructs a ResNet-101 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(Bottleneck, [3, 4, 23, 3], att_type="CBAM", **kwargs)
-    return model
-
-
-def resnet152_cbam(pretrained=False, **kwargs):
-    """Constructs a ResNet-152 model.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(Bottleneck, [3, 8, 36, 3], att_type="CBAM", **kwargs)
-    return model
-
-
-if __name__ == "__main__":
-    import torch
-
-    x = torch.randn(2, 8, 2048)
-    m = resnet34_cbam()
-    print(m)
-    y = m(x)
-    print(y.shape)
-    print("---------")
-    print(m.layer4[-1])
-    print("---------")
-    print(m.layer4[-1].cbam)

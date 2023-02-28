@@ -7,9 +7,6 @@ class Config:
     # 本地的数据根目录
     # root = 'D://Data//Heartbeat//heartbeat2'
     root = "./../"
-    if onserver:
-        # root = '/root/wby/24h_ecg'
-        root = "/home/bywang/ECG_AI/Long_term_ECG"
     train_dir = os.path.join(root, "alldata_npy_1217_1")  # 训练集文件夹
     test_dir = os.path.join(root, "alldata_npy_1217_1")  # 测试集文件夹
     train_label = os.path.join(root, "train_label_v1.txt")  # 训练验证集的标签
