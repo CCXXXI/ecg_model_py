@@ -923,10 +923,7 @@ if __name__ == "__main__":
     #     map_location='cpu')['state_dict'])
     Resnet.load_state_dict(
         torch.load(
-            os.path.join(
-                "./ckpt/resnet34_cbam_ch1_202112251034_v1_lr1e-3_st16_32_64_warmup1e-5-8_bsz1280.005mv_nounittransfrom",
-                "best_w.pth",
-            ),
+            "assets/best_w.pth",
             map_location="cpu",
         )["state_dict"]
     )
