@@ -5,7 +5,6 @@ import os
 class Config:
     onserver = False  # 是否在服务器上训练
     # 本地的数据根目录
-    # root = 'D://Data//Heartbeat//heartbeat2'
     root = "./../"
     train_dir = os.path.join(root, "alldata_npy_1217_1")  # 训练集文件夹
     test_dir = os.path.join(root, "alldata_npy_1217_1")  # 测试集文件夹
@@ -17,19 +16,10 @@ class Config:
     arrythmia = os.path.join(root, "arrhythmia_v1.txt")  # 类别标签文件
     train_data = os.path.join(root, "train_v1.pth")  # 划分好的训练集验证集数据
     word_embedding_path = os.path.join(root, "arrythmia_ori_v4_embedding.txt")
-    # Ridx_path = os.path.join(root, '20210519_120000_R_label_all_v2_1.txt')
-    # all_arrythmia = os.path.join(root, 'arrythmia_ori_v9.txt')
-    # alldata_full_label = os.path.join(root, 'ori_labels_v9_600000.csv')
     test_expri_name = "data_standard"
     experiment_name = (
         "v1_lr1e-3_st16_32_64_warmup1e-5-8_bsz2560.005mv"  # 实验名称，会追加到保存模型的文件夹名
     )
-
-    # dir_24h = os.path.join(root, 'cspc_2020_data')  # 24小时数据路径
-    # beats_24h = os.path.join(root, 'cspc_2020_24hbeat')  # 24小时心拍列表，由24小时数据路径内提取出
-    # R_24h = os.path.join(root, 'cspc_2020_24hRpeak')  # 24小时R波列表
-    # mybeats_24h = os.path.join(root, 'cspc_2020_24hMybeat')
-    # report_24h = os.path.join(root,'cspc_2020_24hreport')
 
     dir_24h = os.path.join(root, "bisha_data")  # 24小时数据路径
     beats_24h = os.path.join(root, "bisha_24hbeat")  # 24小时心拍列表，由24小时数据路径内提取出
@@ -53,22 +43,6 @@ class Config:
     # 是否处理基线漂移，注释掉或False为不处理
     del_drift = False
     del_drift_band_Hz = 0.5  # 选择滤波的频率
-
-    # 优化器 默认Adam 可选SGD、AdamW
-    # optimizer = 'AdamW'  # 'SGD'
-    # momentum = 0.9  # SGD 优化器参数
-
-    # 学习率衰减方式，如果注释掉则为默认衰减方式，不使用pytorch库中的lr_schedular，在stage_epoch包含的epoch处进行学习率衰减
-    # lr_scheduler = 'ReduceLROnPlateau'  # 现支持‘CosineAnnealingWarmRestarts’、‘CosineAnnealingLR’和'ReduceLROnPlateau'
-
-    # CosineAnnealingWarmRestarts 的参数
-    # T_0 = 80  # 多少个epoch第一次重启
-    # T_mult = 2  # 后续重启的间隔时间是上一次重启间隔的几倍（整数）
-    # eta_min = 1e-6  # 最低学习率阈值
-
-    # CosineAnnealingLR的参数
-    # T_0 = 80  # 余弦函数半个周期
-    # eta_min = 1e-6  # 最低学习率阈值
 
     # ReduceLROnPlateau参数
     patience = 3  # 几个epoch指标没有变好就进行学习率衰减
@@ -119,18 +93,11 @@ class Config:
     consider_labelrelationship = False
 
     labelrelationship_self_ratio = 1.0
-    # labelrelationship_self_weight = 0.5
-    # labelrelationship_other_weight = 0.2
-    # type不用时必须注释掉
-    # labelrelationship_type = 'solve_conflict'  # 'double_max_threshold' # 'max_threshold' #'max'
-    # labelrelationship_max_threshold = 0.4
-    # labelrelationship_conflict_threshold = 0.001
 
     epoch_val = True  # 是否以整个epoch为单位计算验证集F1和ACC等指标，注释掉即为不是
     # for train
     # 训练的模型名称，模型类名或函数名，可以返回对应名字的模型对象
     model_name = "resnet34_cbam_ch1"
-    # model_name = 'HighResolutionNet'
 
     # 模型参数
     # ---------------------------
@@ -158,13 +125,6 @@ class Config:
     warmup_lr_from = 1e-5
 
     # 在第几个epoch进行到下一个state,调整lr为lr/=lr_decay
-    # stage_epoch = [40, 80, 120, 160,200]
-    # stage_epoch = [32, 64, 128]
-    # stage_epoch = [24, 48, 128, 200]
-    # stage_epoch = [8, 16, 32, 48, 72]
-    # stage_epoch = [8, 24, 48, 72, 96]
-    # stage_epoch = [16, 24, 40, 64, 80, 128]
-    # stage_epoch = [16, 32, 56, 72, 80, 128]
     stage_epoch = [16, 32, 64, 80, 128]
     # 训练时的batch大小
     batch_size = 256

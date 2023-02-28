@@ -1,13 +1,5 @@
-# import pandas as pd
-# import numpy as np
-# import os
-# import matplotlib.pyplot as plt
-# from random import shuffle
-# from config import config
 import torch
 import torch.nn as nn
-
-# from torch.utils.data import DataLoader,Dataset
 
 
 class CBR_1D(nn.Module):
@@ -42,13 +34,6 @@ class Unet_1D(nn.Module):
 
         self.enc4_1 = CBR_1D(layer_n * 4, layer_n * 8)
         self.enc4_2 = CBR_1D(layer_n * 8, layer_n * 8)
-
-        #         self.enc5_1 = CBR_1D(32,64)
-        #         self.enc5_2 = CBR_1D(64,64)
-
-        #         self.upsample_1 = nn.ConvTranspose1d(kernel_size=8,stride=2,padding=3)
-        #         self.dec4_1 = CBR_1D(32+64,32)
-        #         self.dec4_2 = CBR_1D(32,32)
 
         ### ------- decoder -----------
         self.upsample_3 = nn.ConvTranspose1d(
@@ -89,15 +74,15 @@ class Unet_1D(nn.Module):
         enc4 = self.enc4_2(enc4)
 
         dec3 = self.upsample_3(enc4)
-        dec3 = self.dec3_1(torch.cat([enc3, dec3], dim=1))  ##concat
+        dec3 = self.dec3_1(torch.cat([enc3, dec3], dim=1))
         dec3 = self.dec3_2(dec3)
 
         dec2 = self.upsample_2(dec3)
-        dec2 = self.dec2_1(torch.cat([enc2, dec2], dim=1))  ##concat
+        dec2 = self.dec2_1(torch.cat([enc2, dec2], dim=1))
         dec2 = self.dec2_2(dec2)
 
         dec1 = self.upsample_1(dec2)
-        dec1 = self.dec1_1(torch.cat([enc1, dec1], dim=1))  ##concat
+        dec1 = self.dec1_1(torch.cat([enc1, dec1], dim=1))
         dec1 = self.dec1_2(dec1)
         dec1 = self.dec1_3(dec1)
         out = self.dec1_4(dec1)

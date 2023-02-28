@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-@time: 2019/9/8 19:47
-
-@ author: javis
-"""
-
 import torch
 from scipy import signal
 

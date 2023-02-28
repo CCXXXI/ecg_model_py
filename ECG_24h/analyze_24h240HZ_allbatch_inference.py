@@ -20,10 +20,6 @@ from dataset import transform
 CBR_1D, Unet_1D
 
 
-# import os
-# os.chdir(os.path.dirname(__file__))
-
-
 class Mybeat:
     position = 0
     rpeak = -1
@@ -56,9 +52,6 @@ def get_24h_Beats(data_name, data_dir_path, Unet=None, device=None, fs=240, ori_
 
     print("###正在重采样原始信号###")
     start = time.time()
-    # 可以不用
-    # data = data[:20 * 60 * 60 * fs]
-    # data = data[:24 * 60 * 60 * fs]
     data = resample(data, len(data) * fs // ori_fs)
     lenunet = 10 * 60 * fs
     end = time.time()
@@ -69,12 +62,6 @@ def get_24h_Beats(data_name, data_dir_path, Unet=None, device=None, fs=240, ori_
     start = time.time()
     beats = []
     R_peaks = []
-    # Rons, Roffs = [], []  # for plot
-    # Pons, Poffs = [], []  # for plot
-    # Tons, Toffs = [], []  # for plot
-    # novote_Rons, novote_Roffs = [], []  # for plot
-    # novote_Pons, novote_Poffs = [], []  # for plot
-    # novote_Tons, novote_Toffs = [], []  # for plot
     cur_s = 0
     pbar = tqdm.tqdm(total=lendata)
     while cur_s < lendata:
@@ -84,51 +71,15 @@ def get_24h_Beats(data_name, data_dir_path, Unet=None, device=None, fs=240, ori_
         else:
             now_s = lendata
             break
-        # p, N, t, r, novote_output = U_net_peak(data[cur_s:now_s], input_fs=fs, del_drift=True, model=Unet,device=device)
         p, N, t, r = U_net_peak(
             data[cur_s:now_s], input_fs=fs, del_drift=True, model=Unet, device=device
         )
-
-        # def get_on_off(sig):
-        #     on, off = [], []
-        #     for i, val in enumerate(sig):
-        #         if val == 1:
-        #             if i == 0 or sig[i - 1] == 0:
-        #                 if i + 1 < len(sig) and sig[i + 1] == 1:
-        #                     on.append(int(i))
-        #             if i + 1 == len(sig) or sig[i + 1] == 0:
-        #                 if i != 0 and sig[i - 1] == 1:
-        #                     off.append(i)
-        #     return on, off
-        #
-        # def filter_and_extend_on_off(on, off, ons, offs, append_start, append_end, cur_s):
-        #     for i in range(len(on)):
-        #         if off[i] > append_start and on[i] < append_end:
-        #             cur_on = max(on[i], append_start + 1)
-        #             cur_off = min(off[i], append_end - 1)
-        #             ons.append(cur_on + cur_s)
-        #             offs.append(cur_off + cur_s)
-
-        # psig, rsig, tsig = p, N, t
-        # Ron, Roff = get_on_off(rsig)
-        # Pon, Poff = get_on_off(psig)
-        # Ton, Toff = get_on_off(tsig)
-        # novote_psig, novote_rsig, novote_tsig = novote_output == 0, novote_output == 1, novote_output == 2
-        # novote_Ron, novote_Roff = get_on_off(novote_rsig)
-        # novote_Pon, novote_Poff = get_on_off(novote_psig)
-        # novote_Ton, novote_Toff = get_on_off(novote_tsig)
 
         beat_list = U_net_RPEAK(N)
         r_list = R_Detection_U_net(data[cur_s:now_s], N)
         # 记录QRS波中点，以该点标识心拍     之后两边扩展
         beat_list = np.array(beat_list)
         r_list = np.array(r_list)
-        # x_axios = range(0,1000)
-        # plt.plot(data[x_axios])
-        # for i in beat_list:
-        #     if i in x_axios:
-        #         plt.plot(i,data[i],'o')
-        # plt.show()
 
         append_start = int(0.5 * 60 * fs)
         append_end = int(9.5 * 60 * fs)
@@ -142,31 +93,10 @@ def get_24h_Beats(data_name, data_dir_path, Unet=None, device=None, fs=240, ori_
             if append_start < r <= append_end:
                 R_peaks.append(r + cur_s)
 
-        # filter_and_extend_on_off(novote_Ron, novote_Roff, novote_Rons, novote_Roffs, append_start, append_end, cur_s)
-        # filter_and_extend_on_off(novote_Pon, novote_Poff, novote_Pons, novote_Poffs, append_start, append_end, cur_s)
-        # filter_and_extend_on_off(novote_Ton, novote_Toff, novote_Tons, novote_Toffs, append_start, append_end, cur_s)
-        #
-        # filter_and_extend_on_off(Ron, Roff, Rons, Roffs, append_start, append_end, cur_s)
-        # filter_and_extend_on_off(Pon, Poff, Pons, Poffs, append_start, append_end, cur_s)
-        # filter_and_extend_on_off(Ton, Toff, Tons, Toffs, append_start, append_end, cur_s)
-
-        # for i in range(6):
-        #     x_axios = range(cur_s+i*60*fs,(i+1)*60*fs)
-        #     plt.plot(x_axios,data[x_axios],color = 'blue')
-        #     for beat in beat_list:
-        #         if beat in x_axios:
-        #             plt.plot(beat,data[beat],'o',color = 'red',markersize = 4)
-        #     plt.savefig(os.path.join('D:/Project/ECG_24h/U-net-figure','{}-{}-{}.jpg'.format(data_name,(cur_s/lenunet),i)))
-        #     plt.clf()
-        #     plt.cla()
-        #     plt.close()
         cur_s += 9 * 60 * fs
     end = time.time()
     pbar.close()
-    # segmentation_dict = {'R on': Rons, 'R off': Roffs, 'P on': Pons, 'P off': Poffs, 'T on': Tons, 'T off': Toffs}
-    # novote_segmentation_dict = {'R on': novote_Rons, 'R off': novote_Roffs, 'P on': novote_Pons, 'P off': novote_Poffs, 'T on': novote_Tons, 'T off': novote_Toffs}
     print("###提取成功，提取出{}个心拍，耗时：{}s###".format(len(beats), end - start))
-    # return beats,R_peaks,segmentation_dict,novote_segmentation_dict
     return beats, R_peaks
 
 
@@ -266,12 +196,9 @@ def classification_beats(
             if len(input_tensor) % batch_size == 0 or idx == len(beats) - 1:
                 x = torch.vstack(input_tensor)
                 output = torch.softmax(Resnet(x), dim=1).squeeze()
-                # 是否有用
-                # output = torch.softmax(output, dim=0, dtype=torch.float32)
 
                 # 修改维度
                 y_pred = torch.argmax(output, dim=1, keepdim=False)
-                # y_pred = y_pred.item()
                 for i, pred in enumerate(y_pred):
                     pred = pred.item()
                     beat = input_beats[i]
@@ -867,7 +794,6 @@ if __name__ == "__main__":
                     "w",
                     encoding="utf-8",
                 ) as output2:
-                    # beats,R_peaks,segmentaion_dict,novote_segmentation_dict = get_24h_Beats(i,data_24h_file_dir,Unet = Unet,device=device, fs = fs,ori_fs = ori_fs)
                     beats, R_peaks = get_24h_Beats(
                         i,
                         data_24h_file_dir,
@@ -876,10 +802,6 @@ if __name__ == "__main__":
                         fs=fs,
                         ori_fs=ori_fs,
                     )
-                    # with open(os.path.join(config.R_24h, '{}-SegDict.json'.format(i.split('.')[0])), 'w', encoding='UTF-8') as fout:
-                    #     fout.write(json.dumps(segmentaion_dict))
-                    # with open(os.path.join(config.R_24h, '{}-NoVoteSegDict.json'.format(i.split('.')[0])), 'w', encoding='UTF-8') as fout:
-                    #     fout.write(json.dumps(novote_segmentation_dict))
                     print("{}-{}".format(i, len(beats)))
                     output1.write(i)
                     for beat in beats:
@@ -917,10 +839,6 @@ if __name__ == "__main__":
 
     Resnet = getattr(models, config.model_name)(num_classes=config.num_classes)
 
-    # Resnet.load_state_dict(torch.load(
-    #     os.path.join('/root/24-ecg/ECG_24h/ckpt/resnet34_cbam_ch1_202112251034_v1_lr1e-3_st16_32_64_warmup1e-5-8_bsz1280.005mv_nounittransfrom',
-    #                  'best_w.pth'),
-    #     map_location='cpu')['state_dict'])
     Resnet.load_state_dict(
         torch.load(
             "assets/best_w.pth",

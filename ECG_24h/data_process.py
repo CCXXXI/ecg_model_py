@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-@time: 2019/9/8 18:44
-数据预处理：
-    1.构建label2index和index2label
-    2.划分数据集
-@ author: javis
-"""
 import numpy as np
 import scipy.signal as signal
 import torch
@@ -72,14 +64,10 @@ def U_net_peak(
             return
         x = resample(x, len(x) * target_fs // input_fs)
     lenx = len(x)
-    # import time  #
     if del_drift:
-        # st_time = time.time()  #
         wn1 = 2 * band_Hz / target_fs
         b, a = signal.butter(1, wn1, btype="high")
         x = signal.filtfilt(b, a, x)
-        # ed_time = time.time()  #
-        # delta_del_drift = ed_time - st_time
     # 标准化
     x = (x - np.mean(x)) / np.std(x)
     x = torch.tensor(x)
@@ -87,27 +75,16 @@ def U_net_peak(
     x = torch.unsqueeze(x, 0)
     x = x.to(device)
 
-    # st_time = time.time() #
     pred = model(x)
-    # ed_time = time.time() #
-    # delta_predict = ed_time - st_time #
     out_pred = F.softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
     out_pred = np.reshape(out_pred, lenx)
-    # output = output_sliding_voting(out_pred,15)
-    # st_time = time.time() #
-    # output = my_output_sliding_voting(out_pred,9)
     output = output_sliding_voting_v2(out_pred, 9)
-    # ed_time = time.time() #
-    # delta_vote = ed_time - st_time  #
 
-    # print('高通滤波时间：{}s，推理时间：{}s，投票时间：{}s'.format(delta_del_drift, delta_predict, delta_vote)) #
-    # output = out_pred
     p = output == 0  # P波
     N = output == 1  # QRS
     t = output == 2  # t波
     r = output == 3  # 其他
 
-    # return p,N,t,r, out_pred
     return p, N, t, r
 
 
@@ -188,7 +165,6 @@ def U_net_RPEAK(x):
         elif y[i] == 1 and flag == 1:
             flag = 0
             end = i
-            # print(end-start)
 
             r_list.append(start + math.floor((end - start) / 2))
     return r_list
