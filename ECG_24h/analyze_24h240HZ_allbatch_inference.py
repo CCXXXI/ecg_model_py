@@ -8,9 +8,9 @@ import tqdm
 from scipy import integrate
 from scipy.interpolate import interp1d
 
+import config
 import models
 from U_net.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
-from config import config
 from data_process import name2index
 from data_process import (
     resample,

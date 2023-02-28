@@ -1,7 +1,7 @@
 import torch
 from scipy import signal
 
-from config import config
+import config
 
 
 def resample(sig, target_point_num=None):
