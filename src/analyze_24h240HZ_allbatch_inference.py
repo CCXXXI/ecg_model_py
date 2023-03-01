@@ -13,10 +13,30 @@ from scipy.interpolate import interp1d
 import config
 import models
 from U_net.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
-from dataset import transform
 
 # 保证每次划分数据一致
 np.random.seed(41)
+
+
+def resample(sig, target_point_num=None):
+    """
+    对原始信号进行重采样
+    :param sig: 原始信号
+    :param target_point_num:目标型号点数
+    :return: 重采样的信号
+    """
+    sig = signal.resample(sig, target_point_num) if target_point_num else sig
+    return sig
+
+
+def transform(sig, train=False):
+    # 前置不可或缺的步骤
+    sig = resample(sig, config.target_point_num)
+
+    # 后置不可或缺的步骤
+    sig = sig.transpose()
+    sig = torch.tensor(sig.copy(), dtype=torch.float)
+    return sig
 
 
 def BSW(data, band_hz=0.5, fs=240):
