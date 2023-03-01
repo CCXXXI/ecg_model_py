@@ -28,7 +28,7 @@ def resample(sig, target_point_num=None):
     return sig
 
 
-def transform(sig, train=False):
+def transform(sig):
     # 前置不可或缺的步骤
     sig = resample(sig, 360)
 
@@ -71,7 +71,6 @@ def u_net_peak(
     del_drift=True,
     target_fs=240,
     model=None,
-    gpu=False,
     device="cpu",
 ):
     # 提取U-net波群信息
@@ -164,7 +163,6 @@ def u_net_r_peak(x):
     x_ = np.insert(x_, 0, False)
 
     y = np.zeros_like(x)
-    flag = 0
     for i in range(lenx):
         idx_ = i + 1
         if x_[idx_] == 1 and (x_[idx_ - 1] == 1 or x_[idx_ + 1] == 1):
@@ -174,7 +172,6 @@ def u_net_r_peak(x):
                 y[i] = 0
 
     start = 0
-    end = 0
     flag = 0
     r_list = []
     for i in range(lenx):
@@ -247,7 +244,6 @@ def get_24h_beats(
             pbar.update(lenunet)
             now_s = cur_s + lenunet
         else:
-            now_s = lendata
             break
         p, n, t, r = u_net_peak(
             data[cur_s:now_s], input_fs=fs, del_drift=True, model=u_net, device=device
@@ -446,8 +442,6 @@ def get_lfhf(rr_intervals, rr_interval_times):
     fft_converted = np.fft.fft(resampled_rr_intervals)[non_negative_frequency_index]
     amplitudes = np.abs(fft_converted)
     powers = amplitudes**2
-    if frequencies.shape[0] >= 2 and powers.shape[0] >= 2:
-        interpolated_powers = interp1d(frequencies, powers)
 
     lfhf_configuration = {
         "minimum_frequency": 0.05,
@@ -465,8 +459,6 @@ def get_lfhf(rr_intervals, rr_interval_times):
     except:
         return -1, -1
 
-    low_frequency_component_powers = powers[start_index:boundary_index]
-    high_frequency_component_powers = powers[boundary_index : end_index + 1]
     # 利用积分来代替个数
     if not start_index >= boundary_index:
         lf_integrated = integrate.simps(
@@ -498,7 +490,6 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
     n_diff_flatten_with_rpeak = []
     n_flag = False
     n_continuous_beats = []
-    n_continuous_time = []
     n_stop_beats = []
     n_num = 0
     rr = []
