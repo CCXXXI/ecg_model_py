@@ -13,10 +13,28 @@ from torch.nn.functional import softmax
 import models
 from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 
+# The two classes must be imported, otherwise the model cannot be loaded.
+# noinspection PyStatementEffect
+CBR_1D, Unet_1D
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # 保证每次划分数据一致
 np.random.seed(41)
+
+
+class MyBeat:
+    position = 0
+    r_peak = -1
+    new = False
+    label = ""
+
+    def __init__(self, position=0, r_peak=-1, label="", new=False):
+        self.position = position
+        # 定义补充心拍  处理噪声和室扑，室颤
+        self.new = new
+        self.r_peak = r_peak
+        self.label = label
 
 
 def resample(sig, target_point_num=None):
@@ -198,25 +216,6 @@ def name2index(path):
         list_name.append(line.strip())
     name2idx = {name: i for i, name in enumerate(list_name)}
     return name2idx
-
-
-# The two classes must be imported, otherwise the model cannot be loaded.
-# noinspection PyStatementEffect
-CBR_1D, Unet_1D
-
-
-class MyBeat:
-    position = 0
-    r_peak = -1
-    new = False
-    label = ""
-
-    def __init__(self, position=0, r_peak=-1, label="", new=False):
-        self.position = position
-        # 定义补充心拍  处理噪声和室扑，室颤
-        self.new = new
-        self.r_peak = r_peak
-        self.label = label
 
 
 def get_24h_beats(data_name, data_dir_path, u_net=None, fs=240, ori_fs=250):
