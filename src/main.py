@@ -620,12 +620,10 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
             if n_flag:
                 n_time.append(np.array(n_continuous_beats) / fs)
                 n_continuous_diff = np.diff(np.array(n_continuous_beats))
-                for index, diff in enumerate(n_continuous_diff):
-                    n_diff_flatten_with_rpeak.append(
-                        [n_continuous_beats[index + 1], diff]
-                    )
+                for i, diff in enumerate(n_continuous_diff):
+                    n_diff_flatten_with_rpeak.append([n_continuous_beats[i + 1], diff])
                     if diff > 2 * fs:
-                        n_stop_beats.append([n_continuous_beats[index + 1], diff])
+                        n_stop_beats.append([n_continuous_beats[i + 1], diff])
                 n_diff.append(n_continuous_diff)
                 n_continuous_beats.clear()
                 n_flag = False
