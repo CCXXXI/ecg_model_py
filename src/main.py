@@ -1,5 +1,6 @@
 import math
 import time
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -21,13 +22,12 @@ CBR_1D, Unet_1D
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+@dataclass
 class Beat:
-    def __init__(self, position: int, r_peak: int, is_new: bool, label: str = ""):
-        self.position = position
-        self.r_peak = r_peak
-        # 定义补充心拍  处理噪声和室扑，室颤
-        self.is_new = is_new
-        self.label = label
+    position: int
+    r_peak: int
+    is_new: bool
+    label: str = ""
 
 
 def resample(sig, target_point_num=None):
