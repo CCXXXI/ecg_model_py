@@ -4,11 +4,11 @@ import time
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 import tqdm
 from scipy import integrate
 from scipy import signal
 from scipy.interpolate import interp1d
+from torch.nn.functional import softmax
 
 import models
 from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
@@ -38,7 +38,7 @@ def transform(sig, train=False):
     return sig
 
 
-def BSW(data, band_hz=0.5, fs=240):
+def bsw(data, band_hz=0.5, fs=240):
     wn1 = 2 * band_hz / fs  # 只截取5hz以上的数据
     # noinspection PyTupleAssignmentBalance
     b, a = signal.butter(1, wn1, btype="high")
@@ -64,10 +64,10 @@ def output_sliding_voting_v2(ori_output, window=5, type_num=4):
     return output
 
 
-def U_net_peak(
+def u_net_peak(
     data,
     input_fs,
-    band_Hz=0.5,
+    band_hz=0.5,
     del_drift=True,
     target_fs=240,
     model=None,
@@ -84,7 +84,7 @@ def U_net_peak(
         x = resample(x, len(x) * target_fs // input_fs)
     lenx = len(x)
     if del_drift:
-        wn1 = 2 * band_Hz / target_fs
+        wn1 = 2 * band_hz / target_fs
         # noinspection PyTupleAssignmentBalance
         b, a = signal.butter(1, wn1, btype="high")
         x = signal.filtfilt(b, a, x)
@@ -96,36 +96,36 @@ def U_net_peak(
     x = x.to(device)
 
     pred = model(x)
-    out_pred = F.softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
+    out_pred = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
     out_pred = np.reshape(out_pred, lenx)
     output = output_sliding_voting_v2(out_pred, 9)
 
     p = output == 0  # P波
-    N = output == 1  # QRS
+    n = output == 1  # QRS
     t = output == 2  # t波
     r = output == 3  # 其他
 
-    return p, N, t, r
+    return p, n, t, r
 
 
-def R_Detection_U_net(data, N):
+def r_detection_u_net(data, n):
     # 获取R波波峰
     x = data.copy()
     lenx = len(x)
-    N_ = np.array(N)
-    N_ = np.insert(N_, lenx, False)
-    N_ = np.insert(N_, 0, False)
-    R_start = []
-    R_end = []
-    R = []
+    n_ = np.array(n)
+    n_ = np.insert(n_, lenx, False)
+    n_ = np.insert(n_, 0, False)
+    r_start = []
+    r_end = []
+    r = []
     for i in range(lenx):
         idx_ = i + 1
-        if N_[idx_] == 1 and (N_[idx_ - 1] == 1 or N_[idx_ + 1] == 1):
-            if N_[idx_ - 1] == 0:
-                R_start.append(i)
-            elif N_[idx_ + 1] == 0:
-                R_end.append(i)
-    if not len(R_start) == len(R_end):
+        if n_[idx_] == 1 and (n_[idx_ - 1] == 1 or n_[idx_ + 1] == 1):
+            if n_[idx_ - 1] == 0:
+                r_start.append(i)
+            elif n_[idx_ + 1] == 0:
+                r_end.append(i)
+    if not len(r_start) == len(r_end):
         print("error，R波起点和终点数目不同")
         return
 
@@ -137,25 +137,25 @@ def R_Detection_U_net(data, N):
             + x[min(i + 1, lenx - 1)]
             + x[min(i + 2, lenx - 1)]
         ) / 5
-    for i in range(len(R_start)):
-        R_candidate = []
+    for i in range(len(r_start)):
+        r_candidate = []
         peak_candate = []
 
-        for idx in range(R_start[i], R_end[i]):
+        for idx in range(r_start[i], r_end[i]):
             if idx <= 0 or idx >= lenx - 1:
                 continue
 
             if x[idx] >= x[idx - 1] and x[idx] >= x[idx + 1]:
-                R_candidate.append(idx)
+                r_candidate.append(idx)
                 peak_candate.append(x[idx])
-        if len(R_candidate) == 0:
-            R.append(R_start[i] + np.argmax(x[R_start[i] : R_end[i]]))
+        if len(r_candidate) == 0:
+            r.append(r_start[i] + np.argmax(x[r_start[i] : r_end[i]]))
         else:
-            R.append(R_candidate[np.argmax(peak_candate)])
-    return R
+            r.append(r_candidate[np.argmax(peak_candate)])
+    return r
 
 
-def U_net_RPEAK(x):
+def u_net_r_peak(x):
     # 获取心拍
 
     lenx = len(x)
@@ -221,7 +221,9 @@ class Mybeat:
         self.label = label
 
 
-def get_24h_Beats(data_name, data_dir_path, Unet=None, device=None, fs=240, ori_fs=250):
+def get_24h_beats(
+    data_name, data_dir_path, u_net=None, device=None, fs=240, ori_fs=250
+):
     # 提取R波和心拍
 
     data = load_input(data_dir_path, data_name)
@@ -237,7 +239,7 @@ def get_24h_Beats(data_name, data_dir_path, Unet=None, device=None, fs=240, ori_
     lendata = data.shape[0]
     start = time.time()
     beats = []
-    R_peaks = []
+    r_peaks = []
     cur_s = 0
     pbar = tqdm.tqdm(total=lendata)
     while cur_s < lendata:
@@ -247,12 +249,12 @@ def get_24h_Beats(data_name, data_dir_path, Unet=None, device=None, fs=240, ori_
         else:
             now_s = lendata
             break
-        p, N, t, r = U_net_peak(
-            data[cur_s:now_s], input_fs=fs, del_drift=True, model=Unet, device=device
+        p, n, t, r = u_net_peak(
+            data[cur_s:now_s], input_fs=fs, del_drift=True, model=u_net, device=device
         )
 
-        beat_list = U_net_RPEAK(N)
-        r_list = R_Detection_U_net(data[cur_s:now_s], N)
+        beat_list = u_net_r_peak(n)
+        r_list = r_detection_u_net(data[cur_s:now_s], n)
         # 记录QRS波中点，以该点标识心拍     之后两边扩展
         beat_list = np.array(beat_list)
         r_list = np.array(r_list)
@@ -267,13 +269,13 @@ def get_24h_Beats(data_name, data_dir_path, Unet=None, device=None, fs=240, ori_
                 beats.append(beat + cur_s)
         for r in r_list:
             if append_start < r <= append_end:
-                R_peaks.append(r + cur_s)
+                r_peaks.append(r + cur_s)
 
         cur_s += 9 * 60 * fs
     end = time.time()
     pbar.close()
     print("###提取成功，提取出{}个心拍，耗时：{}s###".format(len(beats), end - start))
-    return beats, R_peaks
+    return beats, r_peaks
 
 
 def check_beats(beats, rpeaks, fs=240):
@@ -308,7 +310,7 @@ def classification_beats(
     data_dir_path,
     save_dir,
     beats,
-    Resnet=None,
+    resnet=None,
     device=None,
     fs=240,
     ori_fs=250,
@@ -319,7 +321,7 @@ def classification_beats(
     print("###正在重采样原始信号###")
     start = time.time()
     data = resample(data, len(data) * fs // ori_fs)
-    data = BSW(data, band_hz=0.5, fs=fs)
+    data = bsw(data, band_hz=0.5, fs=fs)
     end = time.time()
     print("###重采样成功，采样后数据长度：{}###，耗时：{}s".format(data.shape[0], end - start))
 
@@ -357,7 +359,7 @@ def classification_beats(
 
             if len(input_tensor) % batch_size == 0 or idx == len(beats) - 1:
                 x = torch.vstack(input_tensor)
-                output = torch.softmax(Resnet(x), dim=1).squeeze()
+                output = torch.softmax(resnet(x), dim=1).squeeze()
 
                 # 修改维度
                 y_pred = torch.argmax(output, dim=1, keepdim=False)
@@ -491,33 +493,33 @@ def sampletotime(position, fs):
 
 
 def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
-    N_diff = []
-    N_time = []
-    N_diff_flatten_with_rpeak = []
-    N_flag = False
-    N_continuous_beats = []
-    N_continuous_time = []
-    N_stop_beats = []
-    N_num = 0
-    RR = []
-    AF_diff = []  # 房扑房颤
-    AF_flag = False
-    AF_continuous_beats = []
-    VF = []
+    n_diff = []
+    n_time = []
+    n_diff_flatten_with_rpeak = []
+    n_flag = False
+    n_continuous_beats = []
+    n_continuous_time = []
+    n_stop_beats = []
+    n_num = 0
+    rr = []
+    af_diff = []  # 房扑房颤
+    af_flag = False
+    af_continuous_beats = []
+    vf = []
 
-    QRS_num = 0
-    APB = []
-    APB_single = []  # 单发房早-次数
-    APB_double = []  # 成对房早-次数
-    APB_double_rhythm = []  # 房早二联律-次数、持续时间
-    APB_trible_rhythm = []  # 房早三联律-次数、持续时间
-    APB_short_array = []  # 短阵房早-次数、持续时间
-    VPB = []
-    VPB_single = []  # 单发室早
-    VPB_double = []  # 成对室早
-    VPB_double_rhythm = []  # 室早二联律
-    VPB_trible_rhythm = []  # 室早三联律
-    VPB_short_array = []  # 短阵室早
+    qrs_num = 0
+    apb = []
+    apb_single = []  # 单发房早-次数
+    apb_double = []  # 成对房早-次数
+    apb_double_rhythm = []  # 房早二联律-次数、持续时间
+    apb_trible_rhythm = []  # 房早三联律-次数、持续时间
+    apb_short_array = []  # 短阵房早-次数、持续时间
+    vpb = []
+    vpb_single = []  # 单发室早
+    vpb_double = []  # 成对室早
+    vpb_double_rhythm = []  # 室早二联律
+    vpb_trible_rhythm = []  # 室早三联律
+    vpb_short_array = []  # 短阵室早
     iteration_num = 0
     lenmybeats = len(mybeats)
 
@@ -530,37 +532,37 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
             pbar.update(100)
         if mybeat.label == "":
             continue
-        RR.append(mybeat.rpeak if not mybeat.rpeak == -1 else mybeat.position)
+        rr.append(mybeat.rpeak if not mybeat.rpeak == -1 else mybeat.position)
         if mybeat.new == False:
-            QRS_num += 1
+            qrs_num += 1
         if mybeat.label == "房性早搏":  # 单发、成对、二联律、三联律、短阵
-            APB.append(mybeat.position)
+            apb.append(mybeat.position)
             if iteration_num > 0:
                 iteration_num -= 1
                 continue
             if index + 1 < lenmybeats and mybeats[index + 1].label == "房性早搏":
-                APB_probe = 2
-                APB_short_array_list = [mybeat.position, mybeats[index + 1].position]
+                apb_probe = 2
+                apb_short_array_list = [mybeat.position, mybeats[index + 1].position]
                 while True:
                     if (
-                        index + APB_probe < lenmybeats
-                        and mybeats[index + APB_probe].label == "房性早搏"
+                        index + apb_probe < lenmybeats
+                        and mybeats[index + apb_probe].label == "房性早搏"
                     ):
-                        APB_short_array_list.append(
-                            mybeats[index + APB_probe].position
+                        apb_short_array_list.append(
+                            mybeats[index + apb_probe].position
                         )  # 出现短阵房早
-                        APB_probe += 1
+                        apb_probe += 1
                     else:
                         break
-                if APB_probe == 2:
-                    APB_double.append(mybeat.position)
+                if apb_probe == 2:
+                    apb_double.append(mybeat.position)
                     iteration_num = 1
                 else:
-                    APB_short_array.append(APB_short_array_list)
-                    iteration_num = APB_probe - 1
+                    apb_short_array.append(apb_short_array_list)
+                    iteration_num = apb_probe - 1
             else:
                 if index + 2 < lenmybeats and mybeats[index + 2].label == "房性早搏":
-                    APB_double_rhythm.append(mybeat.position)  # 出现房早二联律
+                    apb_double_rhythm.append(mybeat.position)  # 出现房早二联律
                     iteration_num = 2
                 else:
                     if index + 3 < lenmybeats and mybeats[index + 3].label == "房性早搏":
@@ -568,38 +570,38 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
                             index + 6 < lenmybeats
                             and mybeats[index + 6].label == "房性早搏"
                         ):
-                            APB_trible_rhythm.append(mybeat.position)  # 出现房早三联律
+                            apb_trible_rhythm.append(mybeat.position)  # 出现房早三联律
                             iteration_num = 6
                     else:
-                        APB_single.append(mybeat.position)  # 单发房早
+                        apb_single.append(mybeat.position)  # 单发房早
         if mybeat.label == "室性早搏":  # 单发、成对、二联律、三联律、短阵
-            VPB.append(mybeat.position)
+            vpb.append(mybeat.position)
             if iteration_num > 0:
                 iteration_num -= 1
                 continue
             if index + 1 < lenmybeats and mybeats[index + 1].label == "室性早搏":
-                VPB_probe = 2
-                VPB_short_array_list = [mybeat.position, mybeats[index + 1].position]
+                vpb_probe = 2
+                vpb_short_array_list = [mybeat.position, mybeats[index + 1].position]
                 while True:
                     if (
-                        index + VPB_probe < lenmybeats
-                        and mybeats[index + VPB_probe].label == "室性早搏"
+                        index + vpb_probe < lenmybeats
+                        and mybeats[index + vpb_probe].label == "室性早搏"
                     ):
-                        VPB_short_array_list.append(
-                            mybeats[index + VPB_probe].position
+                        vpb_short_array_list.append(
+                            mybeats[index + vpb_probe].position
                         )  # 出现短阵室早
-                        VPB_probe += 1
+                        vpb_probe += 1
                     else:
                         break
-                if VPB_probe == 2:
-                    VPB_double.append(mybeat.position)  # 出现双发室早
+                if vpb_probe == 2:
+                    vpb_double.append(mybeat.position)  # 出现双发室早
                     iteration_num = 1
                 else:
-                    VPB_short_array.append(VPB_short_array_list)
-                    iteration_num = VPB_probe - 1
+                    vpb_short_array.append(vpb_short_array_list)
+                    iteration_num = vpb_probe - 1
             else:
                 if index + 2 < lenmybeats and mybeats[index + 2].label == "室性早搏":
-                    VPB_double_rhythm.append(mybeat.position)  # 出现室早二联律
+                    vpb_double_rhythm.append(mybeat.position)  # 出现室早二联律
                     iteration_num = 2
                 else:
                     if index + 3 < lenmybeats and mybeats[index + 3].label == "室性早搏":
@@ -607,77 +609,76 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
                             index + 6 < lenmybeats
                             and mybeats[index + 6].label == "室性早搏"
                         ):
-                            VPB_trible_rhythm.append(mybeat.position)  # 出现室早三联律
+                            vpb_trible_rhythm.append(mybeat.position)  # 出现室早三联律
                             iteration_num = 6
                     else:
-                        VPB_single.append(mybeat.position)  # 单发室早
+                        vpb_single.append(mybeat.position)  # 单发室早
         if mybeat.label == "窦性心律" and mybeat.new == False and index < lenmybeats - 1:
-            N_num += 1
-            if N_flag == False:
+            n_num += 1
+            if n_flag == False:
                 if index + 1 < lenmybeats and mybeats[index + 1].label == "窦性心律":
-                    N_continuous_beats.append(mybeat.rpeak)
-                    N_flag = True
+                    n_continuous_beats.append(mybeat.rpeak)
+                    n_flag = True
             else:
-                N_continuous_beats.append(mybeat.rpeak)
+                n_continuous_beats.append(mybeat.rpeak)
         else:
             if index == lenmybeats - 1:
                 if mybeat.label == "窦性心律" and mybeat.new == False:
-                    N_num += 1
-                    N_continuous_beats.append(mybeat.rpeak)
-            if N_flag == True:
-                N_time.append(np.array(N_continuous_beats) / fs)
-                N_continuous_diff = np.diff(np.array(N_continuous_beats))
-                for index, diff in enumerate(N_continuous_diff):
-                    N_diff_flatten_with_rpeak.append(
-                        [N_continuous_beats[index + 1], diff]
+                    n_num += 1
+                    n_continuous_beats.append(mybeat.rpeak)
+            if n_flag == True:
+                n_time.append(np.array(n_continuous_beats) / fs)
+                n_continuous_diff = np.diff(np.array(n_continuous_beats))
+                for index, diff in enumerate(n_continuous_diff):
+                    n_diff_flatten_with_rpeak.append(
+                        [n_continuous_beats[index + 1], diff]
                     )
                     if diff > 2 * fs:
-                        N_stop_beats.append([N_continuous_beats[index + 1], diff])
-                # if len(N_continuous_diff)>1:
-                N_diff.append(N_continuous_diff)
-                N_continuous_beats.clear()
-                N_flag = False
+                        n_stop_beats.append([n_continuous_beats[index + 1], diff])
+                n_diff.append(n_continuous_diff)
+                n_continuous_beats.clear()
+                n_flag = False
 
         if mybeat.label == "心房扑动" or mybeat.label == "心房颤动":
-            if AF_flag == False:
+            if af_flag == False:
                 if (
                     index + 1 < lenmybeats
                     and mybeats[index + 1].label == "心房扑动"
                     or "心房颤动"
                     and index < lenmybeats - 1
                 ):
-                    AF_continuous_beats.append(
+                    af_continuous_beats.append(
                         mybeat.rpeak if not mybeat.rpeak == -1 else mybeat.position
                     )
-                    AF_flag = True
+                    af_flag = True
             else:
-                AF_continuous_beats.append(
+                af_continuous_beats.append(
                     mybeat.rpeak if not mybeat.rpeak == -1 else mybeat.position
                 )
         else:
             if index == lenmybeats - 1:
                 if mybeat.label == "心房扑动" or mybeat.label == "心房颤动":
-                    AF_continuous_beats.append(
+                    af_continuous_beats.append(
                         mybeats.rpeak if not mybeat.rpeak == -1 else mybeat.position
                     )
-            if AF_flag == True:
-                AF_continuous_diff = np.diff(np.array(AF_continuous_beats))
-                AF_diff.append(AF_continuous_diff)
-                AF_continuous_beats.clear()
-                AF_flag = False
+            if af_flag == True:
+                af_continuous_diff = np.diff(np.array(af_continuous_beats))
+                af_diff.append(af_continuous_diff)
+                af_continuous_beats.clear()
+                af_flag = False
         # 室扑室颤噪声检查
         if mybeat.label == "室扑室颤":
             if iteration_num > 0:
                 iteration_num -= 1
                 continue
-            VF_probe = index
-            while VF_probe + 1 < lenmybeats and mybeats[VF_probe + 1].label == "室扑室颤":
-                VF_probe += 1
-            VF_time = int((mybeats[VF_probe].position - mybeat.position) / fs)
-            if VF_time <= 2:
+            vf_probe = index
+            while vf_probe + 1 < lenmybeats and mybeats[vf_probe + 1].label == "室扑室颤":
+                vf_probe += 1
+            vf_time = int((mybeats[vf_probe].position - mybeat.position) / fs)
+            if vf_time <= 2:
                 continue
-            VF.append([mybeat.position, VF_time])
-            iteration_num = VF_probe
+            vf.append([mybeat.position, vf_time])
+            iteration_num = vf_probe
 
     lenh = ((mybeats[-1].position / fs) + 0.75) / (60 * 60)
 
@@ -685,181 +686,181 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
         os.path.join(save_dir, data_name + "_report_lfhf.txt"), "w", encoding="utf-8"
     ) as fout:
         # 计算窦性心室率
-        N_max_diff = 0
-        N_min_diff = 10000
-        N_diff_sum = 0
-        N_diff_num = 0
-        for diffs in N_diff:
+        n_max_diff = 0
+        n_min_diff = 10000
+        n_diff_sum = 0
+        n_diff_num = 0
+        for diffs in n_diff:
             for diff in diffs:
-                if diff > N_max_diff and diff < 2 * fs:
-                    N_max_diff = diff
-                if diff < N_min_diff and diff > 0.3 * fs:
-                    N_min_diff = diff
-                N_diff_sum += diff
-                N_diff_num += 1
-        N_ventricular_mean_rate = int(60 / (N_diff_sum / N_diff_num / fs))
-        N_ventricular_max_rate = int(60 / (N_min_diff / fs))
-        N_ventricular_min_rate = int(60 / (N_max_diff / fs))
+                if diff > n_max_diff and diff < 2 * fs:
+                    n_max_diff = diff
+                if diff < n_min_diff and diff > 0.3 * fs:
+                    n_min_diff = diff
+                n_diff_sum += diff
+                n_diff_num += 1
+        n_ventricular_mean_rate = int(60 / (n_diff_sum / n_diff_num / fs))
+        n_ventricular_max_rate = int(60 / (n_min_diff / fs))
+        n_ventricular_min_rate = int(60 / (n_max_diff / fs))
         fout.write("------数据{}------\n".format(data_name))
         display_number = 1
-        if 100 >= N_ventricular_mean_rate >= 60:
-            N_state = "窦性心律"
-        elif N_ventricular_mean_rate < 60:
-            N_state = "窦性心动过缓"
-        elif N_ventricular_mean_rate > 100:
-            N_state = "窦性心动过速"
+        if 100 >= n_ventricular_mean_rate >= 60:
+            n_state = "窦性心律"
+        elif n_ventricular_mean_rate < 60:
+            n_state = "窦性心动过缓"
+        elif n_ventricular_mean_rate > 100:
+            n_state = "窦性心动过速"
         fout.write(
             "{}、{}:平均心室率：{}，最快心室率：{}，最慢心室率：{}\n".format(
                 display_number,
-                N_state,
-                N_ventricular_mean_rate,
-                N_ventricular_max_rate,
-                N_ventricular_min_rate,
+                n_state,
+                n_ventricular_mean_rate,
+                n_ventricular_max_rate,
+                n_ventricular_min_rate,
             )
         )
 
-        if not len(N_stop_beats) == 0:
-            N_stop_max = 0
-            N_stop_index = 0
-            for index, beats in enumerate(N_stop_beats):
-                if beats[1] > N_stop_max:
-                    N_stop_max = beats[1]
-                    N_stop_index = beats[0]
-            N_stop_max_seconds = N_stop_max / fs
-            N_stop_max_h, N_stop_max_m, N_stop_max_s = sampletotime(N_stop_index, fs)
+        if not len(n_stop_beats) == 0:
+            n_stop_max = 0
+            n_stop_index = 0
+            for index, beats in enumerate(n_stop_beats):
+                if beats[1] > n_stop_max:
+                    n_stop_max = beats[1]
+                    n_stop_index = beats[0]
+            n_stop_max_seconds = n_stop_max / fs
+            n_stop_max_h, n_stop_max_m, n_stop_max_s = sampletotime(n_stop_index, fs)
             fout.write(
                 "    发生了{}次窦性停搏,最长的一次为：{:.1f}s，发生于:{}h-{}m-{}s\n".format(
-                    len(N_stop_beats),
-                    N_stop_max_seconds,
-                    N_stop_max_h,
-                    N_stop_max_m,
-                    N_stop_max_s,
+                    len(n_stop_beats),
+                    n_stop_max_seconds,
+                    n_stop_max_h,
+                    n_stop_max_m,
+                    n_stop_max_s,
                 )
             )
         # 计算房扑房颤心室率
-        if not len(AF_diff) == 0:
+        if not len(af_diff) == 0:
             display_number += 1
-            AF_max_diff = 0
-            AF_min_diff = 10000
-            AF_diff_sum = 0
-            AF_diff_num = 0
-            for diffs in AF_diff:
+            af_max_diff = 0
+            af_min_diff = 10000
+            af_diff_sum = 0
+            af_diff_num = 0
+            for diffs in af_diff:
                 for diff in diffs:
-                    if diff > AF_max_diff and diff < 1.5 * fs:  # 最慢不能低于100心率
-                        AF_max_diff = diff
-                    if diff < AF_min_diff and diff > 0.2 * fs:  # 最快不能高于300心率
-                        AF_min_diff = diff
-                    AF_diff_sum += diff
-                    AF_diff_num += 1
-            AF_ventricular_mean_rate = int(60 / (AF_diff_sum / AF_diff_num / fs))
-            AF_ventricular_max_rate = int(60 / (AF_min_diff / fs))
-            AF_ventricular_min_rate = int(60 / (AF_max_diff / fs))
+                    if diff > af_max_diff and diff < 1.5 * fs:  # 最慢不能低于100心率
+                        af_max_diff = diff
+                    if diff < af_min_diff and diff > 0.2 * fs:  # 最快不能高于300心率
+                        af_min_diff = diff
+                    af_diff_sum += diff
+                    af_diff_num += 1
+            af_ventricular_mean_rate = int(60 / (af_diff_sum / af_diff_num / fs))
+            af_ventricular_max_rate = int(60 / (af_min_diff / fs))
+            af_ventricular_min_rate = int(60 / (af_max_diff / fs))
             fout.write(
                 "{}、房扑房颤的平均心室率：{}次/分，最慢心室率：{}次/分，最快心室率：{}次/分\n".format(
                     display_number,
-                    AF_ventricular_mean_rate,
-                    AF_ventricular_min_rate,
-                    AF_ventricular_max_rate,
+                    af_ventricular_mean_rate,
+                    af_ventricular_min_rate,
+                    af_ventricular_max_rate,
                 )
             )
-        if not len(APB) == 0:
+        if not len(apb) == 0:
             display_number += 1
             fout.write(
                 "{}、房性早搏{}次/24h,成对房早{}次/24h,房早二联律{}次/24h,房早三联律{}次/24h,短阵房速{}阵/24h\n".format(
                     display_number,
-                    int(len(APB) * 24 / lenh),
-                    int(len(APB_double) * 24 / lenh),
-                    int(len(APB_double_rhythm) * 24 / lenh),
-                    int(len(APB_trible_rhythm) * 24 / lenh),
-                    math.ceil((len(APB_short_array) * 24 / lenh)),
+                    int(len(apb) * 24 / lenh),
+                    int(len(apb_double) * 24 / lenh),
+                    int(len(apb_double_rhythm) * 24 / lenh),
+                    int(len(apb_trible_rhythm) * 24 / lenh),
+                    math.ceil((len(apb_short_array) * 24 / lenh)),
                 )
             )
             # 短阵房早
-            if not len(APB_short_array) == 0:
-                APB_short_array_diff = []
-                APB_short_array_min_diff = 10000
-                APB_short_array_min_index = 0
-                for APB_s_a in APB_short_array:
-                    APB_short_array_diff.append(np.diff(APB_s_a))
-                for index, diffs in enumerate(APB_short_array_diff):
+            if not len(apb_short_array) == 0:
+                apb_short_array_diff = []
+                apb_short_array_min_diff = 10000
+                apb_short_array_min_index = 0
+                for apb_s_a in apb_short_array:
+                    apb_short_array_diff.append(np.diff(apb_s_a))
+                for index, diffs in enumerate(apb_short_array_diff):
                     for diff in diffs:
-                        if diff < APB_short_array_min_diff and diff > 0.2 * fs:
-                            APB_short_array_min_index = index
-                            APB_short_array_min_diff = diff
-                APB_short_array_ventricular_max_rate = 60 / (
-                    APB_short_array_min_diff / fs
+                        if diff < apb_short_array_min_diff and diff > 0.2 * fs:
+                            apb_short_array_min_index = index
+                            apb_short_array_min_diff = diff
+                apb_short_array_ventricular_max_rate = 60 / (
+                    apb_short_array_min_diff / fs
                 )
-                APB_shor_array_h, APB_shor_array_m, APB_shor_array_s = sampletotime(
-                    APB_short_array[APB_short_array_min_index][0], fs
+                apb_shor_array_h, apb_shor_array_m, apb_shor_array_s = sampletotime(
+                    apb_short_array[apb_short_array_min_index][0], fs
                 )
                 fout.write(
                     "其中，短阵房速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".format(
-                        int(APB_short_array_ventricular_max_rate),
-                        len(APB_short_array[APB_short_array_min_index]),
-                        int(APB_short_array[APB_short_array_min_index][0] * 250 / fs),
-                        APB_shor_array_h,
-                        APB_shor_array_m,
-                        APB_shor_array_s,
+                        int(apb_short_array_ventricular_max_rate),
+                        len(apb_short_array[apb_short_array_min_index]),
+                        int(apb_short_array[apb_short_array_min_index][0] * 250 / fs),
+                        apb_shor_array_h,
+                        apb_shor_array_m,
+                        apb_shor_array_s,
                     )
                 )
-        if not len(VPB) == 0:
+        if not len(vpb) == 0:
             display_number += 1
             fout.write(
                 "{}、室性早搏{}次/24h,成对室早{}次/24h,室早二联律{}次/24h,室早三联律{}次/24h,短阵室速{}阵/24h\n".format(
                     display_number,
-                    int(len(VPB) * 24 / lenh),
-                    int(len(VPB_double) * 24 / lenh),
-                    int(len(VPB_double_rhythm) * 24 / lenh),
-                    int(len(VPB_trible_rhythm) * 24 / lenh),
-                    math.ceil((len(VPB_short_array) * 24 / lenh)),
+                    int(len(vpb) * 24 / lenh),
+                    int(len(vpb_double) * 24 / lenh),
+                    int(len(vpb_double_rhythm) * 24 / lenh),
+                    int(len(vpb_trible_rhythm) * 24 / lenh),
+                    math.ceil((len(vpb_short_array) * 24 / lenh)),
                 )
             )
             # 短阵室早
-            if not len(VPB_short_array) == 0:
-                VPB_short_array_diff = []
-                VPB_short_array_min_diff = 10000
-                VPB_short_array_min_index = 0
-                for VPB_s_a in VPB_short_array:
-                    VPB_short_array_diff.append(np.diff(VPB_s_a))
-                for index, diffs in enumerate(VPB_short_array_diff):
+            if not len(vpb_short_array) == 0:
+                vpb_short_array_diff = []
+                vpb_short_array_min_diff = 10000
+                vpb_short_array_min_index = 0
+                for VPB_s_a in vpb_short_array:
+                    vpb_short_array_diff.append(np.diff(VPB_s_a))
+                for index, diffs in enumerate(vpb_short_array_diff):
                     for diff in diffs:
-                        if diff < VPB_short_array_min_diff:
-                            VPB_short_array_min_index = index
-                            VPB_short_array_min_diff = diff
-                VPB_short_array_ventricular_max_rate = 60 / (
-                    VPB_short_array_min_diff / fs
+                        if diff < vpb_short_array_min_diff:
+                            vpb_short_array_min_index = index
+                            vpb_short_array_min_diff = diff
+                vpb_short_array_ventricular_max_rate = 60 / (
+                    vpb_short_array_min_diff / fs
                 )
-                VPB_shor_array_h, VPB_shor_array_m, VPB_shor_array_s = sampletotime(
-                    VPB_short_array[VPB_short_array_min_index][0], fs
+                vpb_shor_array_h, vpb_shor_array_m, vpb_shor_array_s = sampletotime(
+                    vpb_short_array[vpb_short_array_min_index][0], fs
                 )
                 fout.write(
                     "其中，短阵室速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".format(
-                        int(VPB_short_array_ventricular_max_rate),
-                        len(VPB_short_array[VPB_short_array_min_index]),
-                        int(VPB_short_array[VPB_short_array_min_index][0] * 250 / fs),
-                        VPB_shor_array_h,
-                        VPB_shor_array_m,
-                        VPB_shor_array_s,
+                        int(vpb_short_array_ventricular_max_rate),
+                        len(vpb_short_array[vpb_short_array_min_index]),
+                        int(vpb_short_array[vpb_short_array_min_index][0] * 250 / fs),
+                        vpb_shor_array_h,
+                        vpb_shor_array_m,
+                        vpb_shor_array_s,
                     )
                 )
         # 室扑室颤
-        if not len(VF) == 0:
+        if not len(vf) == 0:
             display_number += 1
             fout.write("{}、出现室扑室颤，如下：\n".format(display_number))
-            for vf in VF:
-                VF_h, VF_m, VF_S = sampletotime(vf[0], fs=240)
+            for vf in vf:
+                vf_h, vf_m, vf_s = sampletotime(vf[0], fs=240)
                 fout.write(
-                    "在{}h-{}m-{}s发生室扑室颤，持续时长{}s\n".format(VF_h, VF_m, VF_S, vf[1])
+                    "在{}h-{}m-{}s发生室扑室颤，持续时长{}s\n".format(vf_h, vf_m, vf_s, vf[1])
                 )
         # 计算HRV
 
         # lf-hf
         lf = 0
         hf = 0
-        for index in range(len(N_diff)):
-            rr_interval = np.array(N_diff[index])
+        for index in range(len(n_diff)):
+            rr_interval = np.array(n_diff[index])
             rr_interval = rr_interval / fs
-            rr_interval_times = np.array(N_time[index])[:-1]
+            rr_interval_times = np.array(n_time[index])[:-1]
             if len(rr_interval) < 4:
                 continue
             lf_, hf_ = get_lfhf(rr_interval, rr_interval_times)
@@ -869,53 +870,53 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
                 lf += lf_
                 hf += hf_
 
-        N_diff_rpeak = [i[0] for i in N_diff_flatten_with_rpeak]
-        N_diff_flatten = [i[1] for i in N_diff_flatten_with_rpeak]
+        n_diff_rpeak = [i[0] for i in n_diff_flatten_with_rpeak]
+        n_diff_flatten = [i[1] for i in n_diff_flatten_with_rpeak]
 
         # RMSSD
-        N_diff_diff = []
-        for diffs in N_diff:
+        n_diff_diff = []
+        for diffs in n_diff:
             diff_diffs = np.diff(diffs)
             for diff_diff in diff_diffs:
-                N_diff_diff.append(diff_diff)
+                n_diff_diff.append(diff_diff)
 
         # SDANN
-        start_rpeak = N_diff_rpeak[0]
-        end_rpeak = N_diff_rpeak[-1]
-        NN_5minute_mean = []
-        NN_5minute_sum = 0
-        NN_5minute_num = 0
+        start_rpeak = n_diff_rpeak[0]
+        end_rpeak = n_diff_rpeak[-1]
+        nn_5minute_mean = []
+        nn_5minute_sum = 0
+        nn_5minute_num = 0
 
-        for index, rpeak in enumerate(N_diff_rpeak):
+        for index, rpeak in enumerate(n_diff_rpeak):
             if (rpeak - start_rpeak) <= 300 * fs and not rpeak == end_rpeak:
-                NN_5minute_sum += N_diff_flatten[index]
-                NN_5minute_num += 1
+                nn_5minute_sum += n_diff_flatten[index]
+                nn_5minute_num += 1
             else:
                 if rpeak == end_rpeak:
                     if (rpeak - start_rpeak) <= 300 * fs:
-                        NN_5minute_num += 1
-                        NN_5minute_sum += N_diff_flatten[index]
-                if not NN_5minute_num == 0:
-                    NN_5minute_mean.append(NN_5minute_sum / NN_5minute_num)
-                NN_5minute_sum = N_diff_flatten[index]
-                NN_5minute_num = 1
+                        nn_5minute_num += 1
+                        nn_5minute_sum += n_diff_flatten[index]
+                if not nn_5minute_num == 0:
+                    nn_5minute_mean.append(nn_5minute_sum / nn_5minute_num)
+                nn_5minute_sum = n_diff_flatten[index]
+                nn_5minute_num = 1
                 start_rpeak = rpeak
         # PNN50
-        N_PNN50_num = 0
-        for diff_diff in N_diff_diff:
+        n_pnn50_num = 0
+        for diff_diff in n_diff_diff:
             if diff_diff >= 0.05 * fs:
-                N_PNN50_num += 1
+                n_pnn50_num += 1
 
-        SDNN = np.std(N_diff_flatten)
-        SDANN = np.std(NN_5minute_mean)
-        RMSSD = math.sqrt(sum([x**2 for x in N_diff_diff]) / len(N_diff_diff))
-        PNN50 = N_PNN50_num / N_num
+        sdnn = np.std(n_diff_flatten)
+        sdann = np.std(nn_5minute_mean)
+        rmssd = math.sqrt(sum([x**2 for x in n_diff_diff]) / len(n_diff_diff))
+        pnn50 = n_pnn50_num / n_num
         display_number += 1
         fout.write("{}、心率变异性指标：\n".format(display_number))
-        fout.write("    SDNN:{:.2f}ms\n".format(SDNN))
-        fout.write("    SDANN:{:.2f}ms\n".format(SDANN))
-        fout.write("    RMSSD:{:.2f}ms\n".format(RMSSD))
-        fout.write("    PNN50:{:.2f}%\n".format(PNN50 * 100))
+        fout.write("    SDNN:{:.2f}ms\n".format(sdnn))
+        fout.write("    SDANN:{:.2f}ms\n".format(sdann))
+        fout.write("    RMSSD:{:.2f}ms\n".format(rmssd))
+        fout.write("    PNN50:{:.2f}%\n".format(pnn50 * 100))
         fout.write("    lf:{}".format(int(lf)))
         fout.write("    lf/hf:{}".format(lf / hf))
 
@@ -927,12 +928,12 @@ def load_input(data_dir_path, data_name):
 def main():
     dir_24h = "../assets/bisha_data"  # 24小时数据路径
     beats_24h_dir = "../assets/bisha_24hbeat"  # 24小时心拍列表，由24小时数据路径内提取出
-    R_24h_dir = "../assets/bisha_24hRpeak"  # 24小时R波列表
+    r_24h_dir = "../assets/bisha_24hRpeak"  # 24小时R波列表
     mybeats_24h_dir = "../assets/bisha_24hMybeat"
     report_24h_dir = "../assets/bisha_24hreport"
 
     os.makedirs(beats_24h_dir, exist_ok=True)
-    os.makedirs(R_24h_dir, exist_ok=True)
+    os.makedirs(r_24h_dir, exist_ok=True)
     os.makedirs(mybeats_24h_dir, exist_ok=True)
     os.makedirs(report_24h_dir, exist_ok=True)
     fs = 240
@@ -941,8 +942,8 @@ def main():
     data_24h_file_dir = dir_24h
     # ①提取R波切分心拍
     with torch.no_grad():
-        Unet = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
-        Unet.eval()
+        u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
+        u_net.eval()
         for i in os.listdir(data_24h_file_dir):
             with open(
                 os.path.join(beats_24h_dir, "{}-beats.txt".format(i.split(".")[0])),
@@ -950,14 +951,14 @@ def main():
                 encoding="utf-8",
             ) as output1:
                 with open(
-                    os.path.join(R_24h_dir, "{}-Rpeaks.txt".format(i.split(".")[0])),
+                    os.path.join(r_24h_dir, "{}-Rpeaks.txt".format(i.split(".")[0])),
                     "w",
                     encoding="utf-8",
                 ) as output2:
-                    beats, R_peaks = get_24h_Beats(
+                    beats, r_peaks = get_24h_beats(
                         i,
                         data_24h_file_dir,
-                        Unet=Unet,
+                        u_net=u_net,
                         device=device,
                         fs=fs,
                         ori_fs=ori_fs,
@@ -969,7 +970,7 @@ def main():
                         output1.write(str(beat))
                     output1.write("\n")
                     output2.write(i)
-                    for R_peak in R_peaks:
+                    for R_peak in r_peaks:
                         output2.write(",")
                         output2.write(str(R_peak))
                     output2.write("\n")
@@ -979,7 +980,7 @@ def main():
     for beat_file in os.listdir(beats_24h_dir):
         data_name = beat_file.split("-")[0]
         beats_in = open(os.path.join(beats_24h_dir, beat_file))
-        rpeak_in = open(os.path.join(R_24h_dir, data_name + "-Rpeaks.txt"))
+        rpeak_in = open(os.path.join(r_24h_dir, data_name + "-Rpeaks.txt"))
         beats = beats_in.readline().split(",")[1:]
         rpeaks = rpeak_in.readline().split(",")[1:]
         if not len(beats) == len(rpeaks):
@@ -989,15 +990,15 @@ def main():
         print("补充了{}个心拍".format(add_num))
         save_mybeats(checked_mybeats, data_name + "-mybeats.txt", mybeats_24h_dir)
     # ③读取mybeats并进行预测，存储标签
-    Resnet = getattr(models, "resnet34_cbam_ch1")(num_classes=10)
-    Resnet.load_state_dict(
+    resnet = getattr(models, "resnet34_cbam_ch1")(num_classes=10)
+    resnet.load_state_dict(
         torch.load(
             "../assets/best_w.pth",
             map_location="cpu",
         )["state_dict"]
     )
-    Resnet = Resnet.to(device)
-    Resnet.eval()
+    resnet = resnet.to(device)
+    resnet.eval()
     with torch.no_grad():
         for data_name in os.listdir(data_24h_file_dir):
             name = data_name.split(".")[0] + "-mybeats.txt"
@@ -1008,7 +1009,7 @@ def main():
                 data_24h_file_dir,
                 mybeats_24h_dir,
                 my_beats,
-                Resnet=Resnet,
+                resnet=resnet,
                 device=device,
                 fs=fs,
                 ori_fs=ori_fs,
