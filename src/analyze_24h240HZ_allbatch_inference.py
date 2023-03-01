@@ -46,17 +46,6 @@ def BSW(data, band_hz=0.5, fs=240):
     return filteddata
 
 
-def resample(sig, target_point_num=None):
-    """
-    对原始信号进行重采样
-    :param sig: 原始信号
-    :param target_point_num:目标型号点数
-    :return: 重采样的信号
-    """
-    sig = signal.resample(sig, target_point_num) if target_point_num else sig
-    return sig
-
-
 def output_sliding_voting_v2(ori_output, window=5, type_num=4):
     output = np.array(ori_output)
     n = len(output)
