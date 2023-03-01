@@ -1,6 +1,7 @@
 import math
 import os
 import time
+from typing import Final
 
 import numpy as np
 import torch
@@ -16,6 +17,20 @@ from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 # The two classes must be imported, otherwise the model cannot be loaded.
 # noinspection PyStatementEffect
 CBR_1D, Unet_1D
+
+name2idx: Final[dict[str, int]] = {
+    "窦性心律": 0,
+    "房性早搏": 1,
+    "心房扑动": 2,
+    "心房颤动": 3,
+    "室性早搏": 4,
+    "阵发性室上性心动过速": 5,
+    "心室预激": 6,
+    "室扑室颤": 7,
+    "房室传导阻滞": 8,
+    "噪声": 9,
+}
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -197,19 +212,6 @@ def u_net_r_peak(x):
     return r_list
 
 
-def name2index(path):
-    """
-    把类别名称转换为index索引
-    :param path: 文件路径
-    :return: 字典
-    """
-    list_name = []
-    for line in open(path, encoding="utf-8"):
-        list_name.append(line.strip())
-    name2idx = {name: i for i, name in enumerate(list_name)}
-    return name2idx
-
-
 def get_24h_beats(data_name, data_dir_path, u_net=None, fs=240, ori_fs=250):
     # 提取R波和心拍
 
@@ -313,7 +315,6 @@ def classification_beats(
     print("###正在分类心拍###")
     start = time.time()
 
-    name2idx = name2index("../assets/arrhythmia_v1.txt")
     idx2name = {idx: name for name, idx in name2idx.items()}
     name2cnt = {name: 0 for name in name2idx.keys()}
     pbar = tqdm.tqdm(total=len(beats))
