@@ -918,21 +918,8 @@ def load_input(data_dir_path, data_name):
     return np.loadtxt(os.path.join(data_dir_path, data_name))
 
 
-def main():
-    dir_24h = "../assets/bisha_data"  # 24小时数据路径
-    beats_24h_dir = "../assets/bisha_24hbeat"  # 24小时心拍列表，由24小时数据路径内提取出
-    r_24h_dir = "../assets/bisha_24hRpeak"  # 24小时R波列表
-    my_beats_24h_dir = "../assets/bisha_24hMybeat"
-    report_24h_dir = "../assets/bisha_24hreport"
-
-    os.makedirs(beats_24h_dir, exist_ok=True)
-    os.makedirs(r_24h_dir, exist_ok=True)
-    os.makedirs(my_beats_24h_dir, exist_ok=True)
-    os.makedirs(report_24h_dir, exist_ok=True)
-    fs = 240
-    ori_fs = 250
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # ①提取R波切分心拍
+def get_r_peaks(beats_24h_dir, device, dir_24h, fs, ori_fs, r_24h_dir):
+    """提取R波切分心拍"""
     with torch.no_grad():
         u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
         u_net.eval()
@@ -968,7 +955,10 @@ def main():
                     output2.write("\n")
                 output2.close()
             output1.close()
-    # ②补充心拍
+
+
+def get_my_beats(beats_24h_dir, my_beats_24h_dir, r_24h_dir):
+    """补充心拍"""
     for beat_file in os.listdir(beats_24h_dir):
         data_name = beat_file.split("-")[0]
         beats_in = open(os.path.join(beats_24h_dir, beat_file))
@@ -981,7 +971,10 @@ def main():
         add_num, checked_my_beats = check_beats(beats, r_peaks, fs=240)
         print("补充了{}个心拍".format(add_num))
         save_my_beats(checked_my_beats, data_name + "-mybeats.txt", my_beats_24h_dir)
-    # ③读取mybeats并进行预测，存储标签
+
+
+def get_labels(device, dir_24h, fs, my_beats_24h_dir, ori_fs):
+    """读取mybeats并进行预测，存储标签"""
     resnet = getattr(models, "resnet34_cbam_ch1")(num_classes=10)
     resnet.load_state_dict(
         torch.load(
@@ -1006,14 +999,37 @@ def main():
                 fs=fs,
                 ori_fs=ori_fs,
             )
-    # ④读取带有标签的mybeats，并进行统计
-    load_dir = my_beats_24h_dir
+
+
+def get_report(dir_24h, fs, my_beats_24h_dir, report_24h_dir):
+    """读取带有标签的mybeats，并进行统计"""
     for data_name in os.listdir(dir_24h):
         name = data_name.split(".")[0] + "_mybeats_withlabel_v1.3.txt"
-        my_beats = load_my_beats(name, load_dir)
+        my_beats = load_my_beats(name, my_beats_24h_dir)
         analyze_my_beats(
             my_beats, data_name.split(".")[0], save_dir=report_24h_dir, fs=fs
         )
+
+
+def main():
+    dir_24h = "../assets/bisha_data"  # 24小时数据路径
+    beats_24h_dir = "../assets/bisha_24hbeat"  # 24小时心拍列表，由24小时数据路径内提取出
+    r_24h_dir = "../assets/bisha_24hRpeak"  # 24小时R波列表
+    my_beats_24h_dir = "../assets/bisha_24hMybeat"
+    report_24h_dir = "../assets/bisha_24hreport"
+
+    os.makedirs(beats_24h_dir, exist_ok=True)
+    os.makedirs(r_24h_dir, exist_ok=True)
+    os.makedirs(my_beats_24h_dir, exist_ok=True)
+    os.makedirs(report_24h_dir, exist_ok=True)
+    fs = 240
+    ori_fs = 250
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    get_r_peaks(beats_24h_dir, device, dir_24h, fs, ori_fs, r_24h_dir)
+    get_my_beats(beats_24h_dir, my_beats_24h_dir, r_24h_dir)
+    get_labels(device, dir_24h, fs, my_beats_24h_dir, ori_fs)
+    get_report(dir_24h, fs, my_beats_24h_dir, report_24h_dir)
 
 
 if __name__ == "__main__":
