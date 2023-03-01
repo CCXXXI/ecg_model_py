@@ -19,9 +19,6 @@ CBR_1D, Unet_1D
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 保证每次划分数据一致
-np.random.seed(41)
-
 
 class MyBeat:
     def __init__(self, position=0, r_peak=-1, label="", new=False):
