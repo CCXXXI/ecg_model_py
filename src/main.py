@@ -32,20 +32,9 @@ class Beat:
     label: str = ""
 
 
-def resample(sig, target_point_num=None):
-    """
-    对原始信号进行重采样
-    :param sig: 原始信号
-    :param target_point_num:目标型号点数
-    :return: 重采样的信号
-    """
-    sig = signal.resample(sig, target_point_num) if target_point_num else sig
-    return sig
-
-
 def transform(sig):
     # 前置不可或缺的步骤
-    sig = resample(sig, 360)
+    sig = signal.resample(sig, 360)
 
     # 后置不可或缺的步骤
     sig = sig.transpose()
@@ -94,7 +83,7 @@ def u_net_peak(
         if input_fs < target_fs:
             print("！ERROR：目标采样率大于原始采样率，无法重采样")
             return
-        x = resample(x, len(x) * target_fs // input_fs)
+        x = signal.resample(x, len(x) * target_fs // input_fs)
     len_x = len(x)
     if del_drift:
         wn1 = 2 * band_hz / target_fs
@@ -205,7 +194,7 @@ def get_24h_beats(data, u_net, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
 
     print("###正在重采样原始信号###")
     start = time.time()
-    data = resample(data, len(data) * fs // ori_fs)
+    data = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net = 10 * 60 * fs
     end = time.time()
     print("###重采样成功，采样后数据长度：{}###，耗时：{}s".format(data.shape[0], end - start))
@@ -289,7 +278,7 @@ def classification_beats(
 
     print("###正在重采样原始信号###")
     start = time.time()
-    data = resample(data, len(data) * fs // ori_fs)
+    data = signal.resample(data, len(data) * fs // ori_fs)
     data = bsw(data, band_hz=0.5)
     end = time.time()
     print("###重采样成功，采样后数据长度：{}###，耗时：{}s".format(data.shape[0], end - start))
