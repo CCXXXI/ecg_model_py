@@ -357,36 +357,6 @@ def classification_beats(
     return beats, name2cnt
 
 
-def save_beats(beats: list[Beat], path: str):
-    with open(path, "w", encoding="utf-8") as f_out:
-        for beat in beats:
-            f_out.write(str(beat.position))
-            f_out.write(",")
-            f_out.write(str(beat.r_peak))
-            f_out.write(",")
-            f_out.write(beat.label)
-            f_out.write(",")
-            f_out.write(str(beat.new))
-            f_out.write("\n")
-
-
-def load_my_beats(data_name, load_dir):
-    fin = open(os.path.join(load_dir, data_name), encoding="utf-8")
-    my_beats = []
-    for line in fin:
-        line = line.strip().split(",")
-
-        my_beat = Beat(
-            position=int(line[0]),
-            r_peak=int(line[1]),
-            label=line[2],
-            new=True if line[3] == "True" else False,
-        )
-        my_beats.append(my_beat)
-
-    return my_beats
-
-
 def get_lf_hf(rr_intervals, rr_interval_times):
     resampling_period = 0.5
     interpolation_method = "spline"
@@ -924,6 +894,19 @@ def get_labels(data, checked_beats, fs, ori_fs):
             fs=fs,
             ori_fs=ori_fs,
         )
+
+
+def save_beats(beats: list[Beat], path: str):
+    with open(path, "w", encoding="utf-8") as f_out:
+        for beat in beats:
+            f_out.write(str(beat.position))
+            f_out.write(",")
+            f_out.write(str(beat.r_peak))
+            f_out.write(",")
+            f_out.write(beat.label)
+            f_out.write(",")
+            f_out.write(str(beat.new))
+            f_out.write("\n")
 
 
 def save_dict(data: dict[Any, Any], path: str):
