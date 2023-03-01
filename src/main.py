@@ -7,8 +7,7 @@ from typing import Final
 import numpy as np
 import torch
 import tqdm
-from scipy import integrate
-from scipy import signal
+from scipy import integrate, signal
 from scipy.interpolate import interp1d
 from torch.nn.functional import softmax
 
