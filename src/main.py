@@ -920,17 +920,6 @@ def save_dict(data: dict[Any, Any], path: str):
             f.write("\n")
 
 
-def save_list(data: list[Any], path: str):
-    with open(
-        path,
-        "w",
-        encoding="utf-8",
-    ) as f:
-        for item in data:
-            f.write(str(item))
-            f.write(",")
-
-
 def main():
     fs = 240
     ori_fs = 250
@@ -940,8 +929,10 @@ def main():
     beats: list[np.int32]
     r_peaks: list[np.int64]
     beats, r_peaks = get_r_peaks(data, fs, ori_fs)
-    save_list(beats, "../assets/output/beats.txt")
-    save_list(r_peaks, "../assets/output/r_peaks.txt")
+    with open("../assets/output/beats.txt", "w") as f:
+        print(*beats, sep=",", file=f)
+    with open("../assets/output/r_peaks.txt", "w") as f:
+        print(*r_peaks, sep=",", file=f)
 
     checked_beats: list[Beat] = get_checked_beats(beats, r_peaks)
     save_beats(checked_beats, "../assets/output/checked_beats.txt")
