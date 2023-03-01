@@ -75,20 +75,16 @@ def output_sliding_voting_v2(
 
 
 def u_net_peak(
-    data,
-    band_hz=0.5,
-    del_drift=True,
-    model=None,
+    data: npt.NDArray[np.float64],
+    model: Unet_1D,
 ):
     # 提取U-net波群信息
-
     x = data.copy()
     len_x = len(x)
-    if del_drift:
-        wn1 = 2 * band_hz / fs
-        # noinspection PyTupleAssignmentBalance
-        b, a = signal.butter(1, wn1, btype="high")
-        x = signal.filtfilt(b, a, x)
+    wn1 = 1 / fs
+    # noinspection PyTupleAssignmentBalance
+    b, a = signal.butter(1, wn1, btype="high")
+    x = signal.filtfilt(b, a, x)
     # 标准化
     x = (x - np.mean(x)) / np.std(x)
     x = torch.tensor(x)
@@ -204,7 +200,7 @@ def get_24h_beats(data, u_net, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
             now_s = cur_s + len_u_net
         else:
             break
-        p, n, t, r = u_net_peak(data[cur_s:now_s], del_drift=True, model=u_net)
+        p, n, t, r = u_net_peak(data[cur_s:now_s], model=u_net)
 
         beat_list = u_net_r_peak(n)
         r_list = r_detection_u_net(data[cur_s:now_s], n)
