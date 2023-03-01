@@ -950,8 +950,6 @@ def get_r_peaks(beats_24h_dir, dir_24h, fs, ori_fs, r_24h_dir):
                         output2.write(",")
                         output2.write(str(R_peak))
                     output2.write("\n")
-                output2.close()
-            output1.close()
 
 
 def get_my_beats(beats_24h_dir, my_beats_24h_dir, r_24h_dir):
