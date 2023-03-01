@@ -1,7 +1,8 @@
 import math
 import time
 from dataclasses import dataclass
-from typing import Any, Final
+from pprint import pp
+from typing import Final
 
 import numpy as np
 import torch
@@ -893,19 +894,6 @@ def get_labels(data, checked_beats, ori_fs):
         )
 
 
-def save_dict(data: dict[Any, Any], path: str):
-    with open(
-        path,
-        "w",
-        encoding="utf-8",
-    ) as f:
-        for name, cnt in data.items():
-            f.write(name)
-            f.write(":")
-            f.write(str(cnt))
-            f.write("\n")
-
-
 def main():
     ori_fs = 250
 
@@ -920,9 +908,11 @@ def main():
     labelled_beats: list[Beat]
     label_cnt: dict[str, int]
     labelled_beats, label_cnt = get_labels(data, checked_beats, ori_fs)
+
     with open("../assets/output/labelled_beats.txt", "w", encoding="utf-8") as f:
         print(*labelled_beats, sep="\n", file=f)
-    save_dict(label_cnt, "../assets/output/label_cnt.txt")
+    with open("../assets/output/label_cnt.txt", "w", encoding="utf-8") as f:
+        pp(label_cnt, stream=f)
 
     analyze_beats(labelled_beats, output_path="../assets/output/report.txt")
 
