@@ -212,10 +212,8 @@ def u_net_r_peak(x):
     return r_list
 
 
-def get_24h_beats(data_name, data_dir_path, u_net=None, fs=240, ori_fs=250):
-    # 提取R波和心拍
-
-    data = np.loadtxt(os.path.join(data_dir_path, data_name))
+def get_24h_beats(data, u_net=None, fs=240, ori_fs=250):
+    """提取R波和心拍"""
 
     print("###正在重采样原始信号###")
     start = time.time()
@@ -922,8 +920,7 @@ def get_r_peaks(beats_24h_dir, dir_24h, fs, ori_fs, r_24h_dir):
                 encoding="utf-8",
             ) as output2:
                 beats, r_peaks = get_24h_beats(
-                    filename,
-                    dir_24h,
+                    np.loadtxt(os.path.join(dir_24h, filename)),
                     u_net=u_net,
                     fs=fs,
                     ori_fs=ori_fs,
