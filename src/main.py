@@ -456,7 +456,7 @@ def get_lfhf(rr_intervals, rr_interval_times):
         start_index = np.where(frequencies >= minimum_frequency)[0][0]
         boundary_index = np.where(frequencies >= boundary_frequency)[0][0]
         end_index = np.where(frequencies <= maximum_frequency)[0][-1]
-    except:
+    except IndexError:
         return -1, -1
 
     # 利用积分来代替个数
