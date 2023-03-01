@@ -120,9 +120,8 @@ def r_detection_u_net(data, n):
                 r_start.append(i)
             elif n_[idx_ + 1] == 0:
                 r_end.append(i)
-    if not len(r_start) == len(r_end):
-        print("error，R波起点和终点数目不同")
-        return
+
+    assert len(r_start) == len(r_end), "R 波起点和终点数目不同"
 
     for i in range(len_x):
         x[i] = (
@@ -846,8 +845,8 @@ def get_r_peaks(data, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
 
 def get_checked_beats(beats, r_peaks):
     """补充心拍"""
-    if not len(beats) == len(r_peaks):
-        print("error:提取出的心拍数量{}与R波数量{}不同".format(len(beats), len(r_peaks)))
+    assert len(beats) == len(r_peaks), "提取出的心拍数量与 R 波数量不同"
+
     add_num, checked_beats = check_beats(beats, r_peaks)
     print("补充了{}个心拍".format(add_num))
     return checked_beats
