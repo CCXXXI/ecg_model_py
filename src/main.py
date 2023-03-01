@@ -24,11 +24,6 @@ np.random.seed(41)
 
 
 class MyBeat:
-    position = 0
-    r_peak = -1
-    new = False
-    label = ""
-
     def __init__(self, position=0, r_peak=-1, label="", new=False):
         self.position = position
         # 定义补充心拍  处理噪声和室扑，室颤
