@@ -524,7 +524,7 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
         if mybeat.label == "":
             continue
         rr.append(mybeat.rpeak if not mybeat.rpeak == -1 else mybeat.position)
-        if mybeat.new == False:
+        if not mybeat.new:
             qrs_num += 1
         if mybeat.label == "房性早搏":  # 单发、成对、二联律、三联律、短阵
             apb.append(mybeat.position)
@@ -604,9 +604,9 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
                             iteration_num = 6
                     else:
                         vpb_single.append(mybeat.position)  # 单发室早
-        if mybeat.label == "窦性心律" and mybeat.new == False and index < lenmybeats - 1:
+        if mybeat.label == "窦性心律" and not mybeat.new and index < lenmybeats - 1:
             n_num += 1
-            if n_flag == False:
+            if not n_flag:
                 if index + 1 < lenmybeats and mybeats[index + 1].label == "窦性心律":
                     n_continuous_beats.append(mybeat.rpeak)
                     n_flag = True
@@ -614,10 +614,10 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
                 n_continuous_beats.append(mybeat.rpeak)
         else:
             if index == lenmybeats - 1:
-                if mybeat.label == "窦性心律" and mybeat.new == False:
+                if mybeat.label == "窦性心律" and not mybeat.new:
                     n_num += 1
                     n_continuous_beats.append(mybeat.rpeak)
-            if n_flag == True:
+            if n_flag:
                 n_time.append(np.array(n_continuous_beats) / fs)
                 n_continuous_diff = np.diff(np.array(n_continuous_beats))
                 for index, diff in enumerate(n_continuous_diff):
@@ -631,7 +631,7 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
                 n_flag = False
 
         if mybeat.label == "心房扑动" or mybeat.label == "心房颤动":
-            if af_flag == False:
+            if not af_flag:
                 if (
                     index + 1 < lenmybeats
                     and mybeats[index + 1].label == "心房扑动"
@@ -652,7 +652,7 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
                     af_continuous_beats.append(
                         mybeats.rpeak if not mybeat.rpeak == -1 else mybeat.position
                     )
-            if af_flag == True:
+            if af_flag:
                 af_continuous_diff = np.diff(np.array(af_continuous_beats))
                 af_diff.append(af_continuous_diff)
                 af_continuous_beats.clear()
