@@ -222,7 +222,7 @@ class MyBeat:
 def get_24h_beats(data_name, data_dir_path, u_net=None, fs=240, ori_fs=250):
     # 提取R波和心拍
 
-    data = load_input(data_dir_path, data_name)
+    data = np.loadtxt(os.path.join(data_dir_path, data_name))
 
     print("###正在重采样原始信号###")
     start = time.time()
@@ -310,7 +310,7 @@ def classification_beats(
     ori_fs=250,
 ):
     half_len = int(0.75 * fs)
-    data = load_input(data_dir_path, data_name)
+    data = np.loadtxt(os.path.join(data_dir_path, data_name))
 
     print("###正在重采样原始信号###")
     start = time.time()
@@ -910,10 +910,6 @@ def analyze_my_beats(my_beats, data_name, save_dir, fs=240):
         f_out.write("    PNN50:{:.2f}%\n".format(pnn50 * 100))
         f_out.write("    lf:{}".format(int(lf)))
         f_out.write("    lf/hf:{}".format(lf / hf))
-
-
-def load_input(data_dir_path, data_name):
-    return np.loadtxt(os.path.join(data_dir_path, data_name))
 
 
 def get_r_peaks(beats_24h_dir, dir_24h, fs, ori_fs, r_24h_dir):
