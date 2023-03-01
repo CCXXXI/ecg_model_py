@@ -36,10 +36,10 @@ class Beat:
 
 def transform(sig: npt.NDArray[np.float64]) -> torch.Tensor:
     # 前置不可或缺的步骤
-    sig = signal.resample(sig, 360)
+    sig: npt.NDArray[np.float64] = signal.resample(sig, 360)
 
     # 后置不可或缺的步骤
-    sig = sig.transpose()
+    sig: npt.NDArray[np.float64] = sig.transpose()
     return torch.tensor(sig.copy(), dtype=torch.float)
 
 
