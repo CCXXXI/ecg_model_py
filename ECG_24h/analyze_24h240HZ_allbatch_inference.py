@@ -214,18 +214,7 @@ class Mybeat:
 def get_24h_Beats(data_name, data_dir_path, Unet=None, device=None, fs=240, ori_fs=250):
     # 提取R波和心拍
 
-    print("###正在加载动态心电图文件：{}###".format(data_name))
-    start = time.time()
-    fin = open(os.path.join(data_dir_path, data_name))
-    data = list(map(float, fin.readline().strip().strip(",").split(",")))
-    fin.close()
-    data = np.array(data)
-    end = time.time()
-    print(
-        "###加载文件{}成功，数据时长：{}小时，耗时：{}s###".format(
-            data_name, data.shape[0] / (ori_fs * 3600), end - start
-        )
-    )
+    data = load_input(data_dir_path, data_name, ori_fs)
 
     print("###正在重采样原始信号###")
     start = time.time()
@@ -315,18 +304,7 @@ def classification_beats(
     ori_fs=250,
 ):
     half_len = int(0.75 * fs)
-    print("###正在加载动态心电图文件：{}###".format(data_name))
-    start = time.time()
-    fin = open(os.path.join(data_dir_path, data_name))
-    data = list(map(float, fin.readline().strip().strip(",").split(",")))
-    fin.close()
-    data = np.array(data)
-    end = time.time()
-    print(
-        "###加载文件{}成功，数据时长：{}小时，耗时：{}s###".format(
-            data_name, data.shape[0] / (ori_fs * 3600), end - start
-        )
-    )
+    data = load_input(data_dir_path, data_name, ori_fs)
 
     print("###正在重采样原始信号###")
     start = time.time()
@@ -929,6 +907,22 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
         fout.write("    PNN50:{:.2f}%\n".format(PNN50 * 100))
         fout.write("    lf:{}".format(int(lf)))
         fout.write("    lf/hf:{}".format(lf / hf))
+
+
+def load_input(data_dir_path, data_name, ori_fs):
+    print("###正在加载动态心电图文件：{}###".format(data_name))
+    start = time.time()
+    fin = open(os.path.join(data_dir_path, data_name))
+    data = list(map(float, fin.readline().strip().strip(",").split(",")))
+    fin.close()
+    data = np.array(data)
+    end = time.time()
+    print(
+        "###加载文件{}成功，数据时长：{}小时，耗时：{}s###".format(
+            data_name, data.shape[0] / (ori_fs * 3600), end - start
+        )
+    )
+    return data
 
 
 if __name__ == "__main__":
