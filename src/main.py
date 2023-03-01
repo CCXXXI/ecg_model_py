@@ -308,7 +308,7 @@ def classification_beats(
         "房室传导阻滞",
         "噪声",
     ]
-    name2cnt = {name: 0 for name in labels}
+    label_cnt = {label: 0 for label in labels}
     pbar = tqdm.tqdm(total=len(beats))
     pbar_num = 0
 
@@ -344,7 +344,7 @@ def classification_beats(
                 for i, pred in enumerate(y_pred):
                     pred = pred.item()
                     beat = input_beats[i]
-                    name2cnt[labels[pred]] += 1
+                    label_cnt[labels[pred]] += 1
                     beat.label = labels[pred]
                 input_tensor = []
                 input_beats = []
@@ -352,7 +352,7 @@ def classification_beats(
     end = time.time()
     print("###分类结束，耗时：{}###".format(end - start))
 
-    return beats, name2cnt
+    return beats, label_cnt
 
 
 def get_lf_hf(rr_intervals, rr_interval_times):
@@ -874,7 +874,7 @@ def get_checked_beats(beats, r_peaks):
 
 
 def get_labels(data, checked_beats, fs, ori_fs):
-    """读取mybeats并进行预测，存储标签"""
+    """进行预测，获取标签"""
     resnet = getattr(models, "resnet34_cbam_ch1")(num_classes=10)
     resnet.load_state_dict(
         torch.load(
@@ -920,11 +920,11 @@ def main():
     checked_beats: list[Beat] = get_checked_beats(beats, r_peaks)
 
     labelled_beats: list[Beat]
-    name2cnt: dict[str, int]
-    labelled_beats, name2cnt = get_labels(data, checked_beats, fs, ori_fs)
+    label_cnt: dict[str, int]
+    labelled_beats, label_cnt = get_labels(data, checked_beats, fs, ori_fs)
     with open("../assets/output/labelled_beats.txt", "w", encoding="utf-8") as f:
         print(*labelled_beats, sep="\n", file=f)
-    save_dict(name2cnt, "../assets/output/name2cnt.txt")
+    save_dict(label_cnt, "../assets/output/label_cnt.txt")
 
     analyze_beats(labelled_beats, output_path="../assets/output/report.txt", fs=fs)
 
