@@ -851,11 +851,7 @@ def get_labels(data, checked_beats, ori_fs):
         )
 
 
-def main():
-    ori_fs = 250
-
-    data = np.loadtxt("../assets/input.txt")
-
+def infer(data, ori_fs):
     beats: list[np.int32]
     r_peaks: list[np.int64]
     beats, r_peaks = get_r_peaks(data, ori_fs)
@@ -866,12 +862,18 @@ def main():
     label_cnt: dict[str, int]
     labelled_beats, label_cnt = get_labels(data, checked_beats, ori_fs)
 
+    return label_cnt, labelled_beats
+
+
+def main():
+    label_cnt, labelled_beats = infer(np.loadtxt("../assets/input.txt"), 250)
+
+    analyze_beats(labelled_beats, output_path="../assets/output/report.txt")
+
     with open("../assets/output/labelled_beats.txt", "w", encoding="utf-8") as f:
         print(*labelled_beats, sep="\n", file=f)
     with open("../assets/output/label_cnt.txt", "w", encoding="utf-8") as f:
         pp(label_cnt, stream=f)
-
-    analyze_beats(labelled_beats, output_path="../assets/output/report.txt")
 
 
 if __name__ == "__main__":
