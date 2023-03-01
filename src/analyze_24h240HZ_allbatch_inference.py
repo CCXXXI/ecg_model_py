@@ -975,7 +975,7 @@ def main():
     Resnet = getattr(models, config.model_name)(num_classes=config.num_classes)
     Resnet.load_state_dict(
         torch.load(
-            "assets/best_w.pth",
+            "../assets/best_w.pth",
             map_location="cpu",
         )["state_dict"]
     )
