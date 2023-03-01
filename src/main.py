@@ -13,6 +13,8 @@ from torch.nn.functional import softmax
 import models
 from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # 保证每次划分数据一致
 np.random.seed(41)
 
@@ -71,7 +73,6 @@ def u_net_peak(
     del_drift=True,
     target_fs=240,
     model=None,
-    device="cpu",
 ):
     # 提取U-net波群信息
 
@@ -218,9 +219,7 @@ class MyBeat:
         self.label = label
 
 
-def get_24h_beats(
-    data_name, data_dir_path, u_net=None, device=None, fs=240, ori_fs=250
-):
+def get_24h_beats(data_name, data_dir_path, u_net=None, fs=240, ori_fs=250):
     # 提取R波和心拍
 
     data = load_input(data_dir_path, data_name)
@@ -246,7 +245,7 @@ def get_24h_beats(
         else:
             break
         p, n, t, r = u_net_peak(
-            data[cur_s:now_s], input_fs=fs, del_drift=True, model=u_net, device=device
+            data[cur_s:now_s], input_fs=fs, del_drift=True, model=u_net
         )
 
         beat_list = u_net_r_peak(n)
@@ -307,7 +306,6 @@ def classification_beats(
     save_dir,
     beats,
     resnet=None,
-    device=None,
     fs=240,
     ori_fs=250,
 ):
@@ -918,7 +916,7 @@ def load_input(data_dir_path, data_name):
     return np.loadtxt(os.path.join(data_dir_path, data_name))
 
 
-def get_r_peaks(beats_24h_dir, device, dir_24h, fs, ori_fs, r_24h_dir):
+def get_r_peaks(beats_24h_dir, dir_24h, fs, ori_fs, r_24h_dir):
     """提取R波切分心拍"""
     with torch.no_grad():
         u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
@@ -938,7 +936,6 @@ def get_r_peaks(beats_24h_dir, device, dir_24h, fs, ori_fs, r_24h_dir):
                         i,
                         dir_24h,
                         u_net=u_net,
-                        device=device,
                         fs=fs,
                         ori_fs=ori_fs,
                     )
@@ -973,7 +970,7 @@ def get_my_beats(beats_24h_dir, my_beats_24h_dir, r_24h_dir):
         save_my_beats(checked_my_beats, data_name + "-mybeats.txt", my_beats_24h_dir)
 
 
-def get_labels(device, dir_24h, fs, my_beats_24h_dir, ori_fs):
+def get_labels(dir_24h, fs, my_beats_24h_dir, ori_fs):
     """读取mybeats并进行预测，存储标签"""
     resnet = getattr(models, "resnet34_cbam_ch1")(num_classes=10)
     resnet.load_state_dict(
@@ -995,7 +992,6 @@ def get_labels(device, dir_24h, fs, my_beats_24h_dir, ori_fs):
                 my_beats_24h_dir,
                 my_beats,
                 resnet=resnet,
-                device=device,
                 fs=fs,
                 ori_fs=ori_fs,
             )
@@ -1024,11 +1020,10 @@ def main():
     os.makedirs(report_24h_dir, exist_ok=True)
     fs = 240
     ori_fs = 250
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    get_r_peaks(beats_24h_dir, device, dir_24h, fs, ori_fs, r_24h_dir)
+    get_r_peaks(beats_24h_dir, dir_24h, fs, ori_fs, r_24h_dir)
     get_my_beats(beats_24h_dir, my_beats_24h_dir, r_24h_dir)
-    get_labels(device, dir_24h, fs, my_beats_24h_dir, ori_fs)
+    get_labels(dir_24h, fs, my_beats_24h_dir, ori_fs)
     get_report(dir_24h, fs, my_beats_24h_dir, report_24h_dir)
 
 
