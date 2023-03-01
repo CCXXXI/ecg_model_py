@@ -932,12 +932,11 @@ def main():
     fs = 240
     ori_fs = 250
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    data_24h_file_dir = dir_24h
     # ①提取R波切分心拍
     with torch.no_grad():
         u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
         u_net.eval()
-        for i in os.listdir(data_24h_file_dir):
+        for i in os.listdir(dir_24h):
             with open(
                 os.path.join(beats_24h_dir, "{}-beats.txt".format(i.split(".")[0])),
                 "w",
@@ -950,7 +949,7 @@ def main():
                 ) as output2:
                     beats, r_peaks = get_24h_beats(
                         i,
-                        data_24h_file_dir,
+                        dir_24h,
                         u_net=u_net,
                         device=device,
                         fs=fs,
@@ -993,13 +992,13 @@ def main():
     resnet = resnet.to(device)
     resnet.eval()
     with torch.no_grad():
-        for data_name in os.listdir(data_24h_file_dir):
+        for data_name in os.listdir(dir_24h):
             name = data_name.split(".")[0] + "-mybeats.txt"
             print(name)
             my_beats = load_my_beats(name, my_beats_24h_dir)
             classification_beats(
                 data_name,
-                data_24h_file_dir,
+                dir_24h,
                 my_beats_24h_dir,
                 my_beats,
                 resnet=resnet,
@@ -1009,7 +1008,7 @@ def main():
             )
     # ④读取带有标签的mybeats，并进行统计
     load_dir = my_beats_24h_dir
-    for data_name in os.listdir(data_24h_file_dir):
+    for data_name in os.listdir(dir_24h):
         name = data_name.split(".")[0] + "_mybeats_withlabel_v1.3.txt"
         my_beats = load_my_beats(name, load_dir)
         analyze_my_beats(
