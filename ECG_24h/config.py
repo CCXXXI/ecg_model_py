@@ -1,7 +1,7 @@
 import os
 
 # 本地的数据根目录
-root = "./../"
+root = "assets"
 
 arrythmia = os.path.join(root, "arrhythmia_v1.txt")  # 类别标签文件
 dir_24h = os.path.join(root, "bisha_data")  # 24小时数据路径
