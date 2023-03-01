@@ -286,34 +286,34 @@ def classification_beats(
     batch_size = 64
     input_tensor = []
     input_beats = []
-    with torch.no_grad():
-        for idx, beat in enumerate(beats):
-            if beat.position < half_len or beat.position >= data.shape[0] - half_len:
-                beat.label = ""
-                continue
 
-            x = data[beat.position - half_len : beat.position + half_len]
-            x.astype(np.float32)
-            x = np.reshape(x, (1, half_len * 2))
-            x = (x - np.mean(x)) / np.std(x)
-            x = x.T
-            x = transform(x).unsqueeze(0).to(device)
-            input_tensor.append(x)
-            input_beats.append(beat)
+    for idx, beat in enumerate(beats):
+        if beat.position < half_len or beat.position >= data.shape[0] - half_len:
+            beat.label = ""
+            continue
 
-            if len(input_tensor) % batch_size == 0 or idx == len(beats) - 1:
-                x = torch.vstack(input_tensor)
-                output = torch.softmax(resnet(x), dim=1).squeeze()
+        x = data[beat.position - half_len : beat.position + half_len]
+        x.astype(np.float32)
+        x = np.reshape(x, (1, half_len * 2))
+        x = (x - np.mean(x)) / np.std(x)
+        x = x.T
+        x = transform(x).unsqueeze(0).to(device)
+        input_tensor.append(x)
+        input_beats.append(beat)
 
-                # 修改维度
-                y_pred = torch.argmax(output, dim=1, keepdim=False)
-                for i, pred in enumerate(y_pred):
-                    pred = pred.item()
-                    beat = input_beats[i]
-                    label_cnt[labels[pred]] += 1
-                    beat.label = labels[pred]
-                input_tensor = []
-                input_beats = []
+        if len(input_tensor) % batch_size == 0 or idx == len(beats) - 1:
+            x = torch.vstack(input_tensor)
+            output = torch.softmax(resnet(x), dim=1).squeeze()
+
+            # 修改维度
+            y_pred = torch.argmax(output, dim=1, keepdim=False)
+            for i, pred in enumerate(y_pred):
+                pred = pred.item()
+                beat = input_beats[i]
+                label_cnt[labels[pred]] += 1
+                beat.label = labels[pred]
+            input_tensor = []
+            input_beats = []
 
     logging.info("分类结束")
 
@@ -811,15 +811,14 @@ def analyze_beats(my_beats, output_path):
 
 def get_r_peaks(data, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
     """提取R波切分心拍"""
-    with torch.no_grad():
-        u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
-        u_net.eval()
+    u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
+    u_net.eval()
 
-        return get_24h_beats(
-            data,
-            u_net=u_net,
-            ori_fs=ori_fs,
-        )
+    return get_24h_beats(
+        data,
+        u_net=u_net,
+        ori_fs=ori_fs,
+    )
 
 
 def get_checked_beats(beats, r_peaks):
@@ -842,13 +841,12 @@ def get_labels(data, checked_beats, ori_fs):
     )
     resnet = resnet.to(device)
     resnet.eval()
-    with torch.no_grad():
-        return classification_beats(
-            data,
-            checked_beats,
-            resnet=resnet,
-            ori_fs=ori_fs,
-        )
+    return classification_beats(
+        data,
+        checked_beats,
+        resnet=resnet,
+        ori_fs=ori_fs,
+    )
 
 
 def infer(data, ori_fs):
@@ -866,7 +864,8 @@ def infer(data, ori_fs):
 
 
 def main():
-    label_cnt, labelled_beats = infer(np.loadtxt("../assets/input.txt"), 250)
+    with torch.no_grad():
+        label_cnt, labelled_beats = infer(np.loadtxt("../assets/input.txt"), 250)
 
     analyze_beats(labelled_beats, output_path="../assets/output/report.txt")
 
