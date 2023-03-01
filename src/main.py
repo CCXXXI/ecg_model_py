@@ -5,6 +5,7 @@ from pprint import pp
 from typing import Final
 
 import numpy as np
+import numpy.typing as npt
 import torch
 from scipy import integrate, signal
 from scipy.interpolate import interp1d
@@ -33,14 +34,13 @@ class Beat:
     label: str = ""
 
 
-def transform(sig):
+def transform(sig: npt.NDArray[np.float64]) -> torch.Tensor:
     # 前置不可或缺的步骤
     sig = signal.resample(sig, 360)
 
     # 后置不可或缺的步骤
     sig = sig.transpose()
-    sig = torch.tensor(sig.copy(), dtype=torch.float)
-    return sig
+    return torch.tensor(sig.copy(), dtype=torch.float)
 
 
 def bsw(data, band_hz):
