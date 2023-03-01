@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 
 import config
 import models
-from U_net.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
+from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 
 # 保证每次划分数据一致
 np.random.seed(41)
