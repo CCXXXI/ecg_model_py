@@ -40,6 +40,7 @@ def transform(sig, train=False):
 
 def BSW(data, band_hz=0.5, fs=240):
     wn1 = 2 * band_hz / fs  # 只截取5hz以上的数据
+    # noinspection PyTupleAssignmentBalance
     b, a = signal.butter(1, wn1, btype="high")
     filteddata = signal.filtfilt(b, a, data)
     return filteddata
@@ -84,6 +85,7 @@ def U_net_peak(
     lenx = len(x)
     if del_drift:
         wn1 = 2 * band_Hz / target_fs
+        # noinspection PyTupleAssignmentBalance
         b, a = signal.butter(1, wn1, btype="high")
         x = signal.filtfilt(b, a, x)
     # 标准化
@@ -427,6 +429,8 @@ def get_lfhf(rr_intervals, rr_interval_times):
         )
     elif interpolation_method == "linear":
         interpolated_rr_intervals = interp1d(rr_interval_times, rr_intervals)
+    else:
+        raise ValueError("interpolation_method must be either 'spline' or 'linear'")
     # fft conversion
     start_time = interpolated_rr_intervals.x[0]
     end_time = interpolated_rr_intervals.x[-1]
