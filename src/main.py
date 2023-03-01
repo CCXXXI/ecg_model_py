@@ -22,11 +22,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class Beat:
-    def __init__(self, position=0, r_peak=-1, label="", new=False):
+    def __init__(self, position: int, r_peak: int, is_new: bool, label=""):
         self.position = position
-        # 定义补充心拍  处理噪声和室扑，室颤
-        self.new = new
         self.r_peak = r_peak
+        # 定义补充心拍  处理噪声和室扑，室颤
+        self.is_new = is_new
         self.label = label
 
 
@@ -253,7 +253,7 @@ def get_24h_beats(data, u_net, fs, ori_fs) -> tuple[list[np.int32], list[np.int6
 def check_beats(beats, r_peaks, fs):
     beats = np.array(beats, dtype=int)
     r_peaks = np.array(r_peaks, dtype=int)
-    checked_beats = [Beat(position=beats[0], r_peak=r_peaks[0], new=False)]
+    checked_beats = [Beat(position=beats[0], r_peak=r_peaks[0], is_new=False)]
     limit = 2 * 1.5 * fs
     beats_diff = np.diff(beats)
     add_num = 0
@@ -264,15 +264,15 @@ def check_beats(beats, r_peaks, fs):
             end = beats[index + 1]
             while (end - cur) >= limit:
                 new_beat = cur + int(limit / 2)
-                checked_beats.append(Beat(position=new_beat, new=True))
+                checked_beats.append(Beat(position=new_beat, r_peak=-1, is_new=True))
                 cur = new_beat
                 add_num += 1
             checked_beats.append(
-                Beat(position=beats[index + 1], r_peak=r_peaks[index + 1], new=False)
+                Beat(position=beats[index + 1], r_peak=r_peaks[index + 1], is_new=False)
             )
         else:
             checked_beats.append(
-                Beat(position=beats[index + 1], r_peak=r_peaks[index + 1], new=False)
+                Beat(position=beats[index + 1], r_peak=r_peaks[index + 1], is_new=False)
             )
     return add_num, checked_beats
 
@@ -462,7 +462,7 @@ def analyze_beats(my_beats, output_path, fs):
         if my_beat.label == "":
             continue
         rr.append(my_beat.r_peak if not my_beat.r_peak == -1 else my_beat.position)
-        if not my_beat.new:
+        if not my_beat.is_new:
             qrs_num += 1
         if my_beat.label == "房性早搏":  # 单发、成对、二联律、三联律、短阵
             apb.append(my_beat.position)
@@ -542,7 +542,7 @@ def analyze_beats(my_beats, output_path, fs):
                             iteration_num = 6
                     else:
                         vpb_single.append(my_beat.position)  # 单发室早
-        if my_beat.label == "窦性心律" and not my_beat.new and index < len_my_beats - 1:
+        if my_beat.label == "窦性心律" and not my_beat.is_new and index < len_my_beats - 1:
             n_num += 1
             if not n_flag:
                 if index + 1 < len_my_beats and my_beats[index + 1].label == "窦性心律":
@@ -552,7 +552,7 @@ def analyze_beats(my_beats, output_path, fs):
                 n_continuous_beats.append(my_beat.r_peak)
         else:
             if index == len_my_beats - 1:
-                if my_beat.label == "窦性心律" and not my_beat.new:
+                if my_beat.label == "窦性心律" and not my_beat.is_new:
                     n_num += 1
                     n_continuous_beats.append(my_beat.r_peak)
             if n_flag:
@@ -903,7 +903,7 @@ def save_beats(beats: list[Beat], path: str):
             f_out.write(",")
             f_out.write(beat.label)
             f_out.write(",")
-            f_out.write(str(beat.new))
+            f_out.write(str(beat.is_new))
             f_out.write("\n")
 
 
