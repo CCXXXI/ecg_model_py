@@ -916,6 +916,7 @@ def load_input(data_dir_path, data_name, ori_fs):
     data = list(map(float, fin.readline().strip().strip(",").split(",")))
     fin.close()
     data = np.array(data)
+    data = data[: ori_fs * 60 * 10]
     end = time.time()
     print(
         "###加载文件{}成功，数据时长：{}小时，耗时：{}s###".format(
