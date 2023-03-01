@@ -10,7 +10,6 @@ from scipy import integrate
 from scipy import signal
 from scipy.interpolate import interp1d
 
-import config
 import models
 from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 
@@ -31,7 +30,7 @@ def resample(sig, target_point_num=None):
 
 def transform(sig, train=False):
     # 前置不可或缺的步骤
-    sig = resample(sig, config.target_point_num)
+    sig = resample(sig, 360)
 
     # 后置不可或缺的步骤
     sig = sig.transpose()
@@ -325,7 +324,7 @@ def classification_beats(
     print("###正在分类心拍###")
     start = time.time()
 
-    name2idx = name2index(config.arrythmia)
+    name2idx = name2index("../assets/arrhythmia_v1.txt")
     idx2name = {idx: name for name, idx in name2idx.items()}
     name2cnt = {name: 0 for name in name2idx.keys()}
     pbar = tqdm.tqdm(total=len(beats))
@@ -348,8 +347,7 @@ def classification_beats(
             x = data[beat.position - half_len : beat.position + half_len]
             x.astype(np.float32)
             x = np.reshape(x, (1, half_len * 2))
-            if config.data_standardization:
-                x = (x - np.mean(x)) / np.std(x)
+            x = (x - np.mean(x)) / np.std(x)
             x = x.T
             x = transform(x).unsqueeze(0).to(device)
             input_tensor.append(x)
@@ -923,26 +921,32 @@ def load_input(data_dir_path, data_name):
 
 
 def main():
-    os.makedirs(config.beats_24h, exist_ok=True)
-    os.makedirs(config.R_24h, exist_ok=True)
-    os.makedirs(config.mybeats_24h, exist_ok=True)
-    os.makedirs(config.report_24h, exist_ok=True)
+    dir_24h = "../assets/bisha_data"  # 24小时数据路径
+    beats_24h_dir = "../assets/bisha_24hbeat"  # 24小时心拍列表，由24小时数据路径内提取出
+    R_24h_dir = "../assets/bisha_24hRpeak"  # 24小时R波列表
+    mybeats_24h_dir = "../assets/bisha_24hMybeat"
+    report_24h_dir = "../assets/bisha_24hreport"
+
+    os.makedirs(beats_24h_dir, exist_ok=True)
+    os.makedirs(R_24h_dir, exist_ok=True)
+    os.makedirs(mybeats_24h_dir, exist_ok=True)
+    os.makedirs(report_24h_dir, exist_ok=True)
     fs = 240
     ori_fs = 250
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    data_24h_file_dir = config.dir_24h
+    data_24h_file_dir = dir_24h
     # ①提取R波切分心拍
     with torch.no_grad():
         Unet = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
         Unet.eval()
         for i in os.listdir(data_24h_file_dir):
             with open(
-                os.path.join(config.beats_24h, "{}-beats.txt".format(i.split(".")[0])),
+                os.path.join(beats_24h_dir, "{}-beats.txt".format(i.split(".")[0])),
                 "w",
                 encoding="utf-8",
             ) as output1:
                 with open(
-                    os.path.join(config.R_24h, "{}-Rpeaks.txt".format(i.split(".")[0])),
+                    os.path.join(R_24h_dir, "{}-Rpeaks.txt".format(i.split(".")[0])),
                     "w",
                     encoding="utf-8",
                 ) as output2:
@@ -968,10 +972,10 @@ def main():
                 output2.close()
             output1.close()
     # ②补充心拍
-    for beat_file in os.listdir(config.beats_24h):
+    for beat_file in os.listdir(beats_24h_dir):
         data_name = beat_file.split("-")[0]
-        beats_in = open(os.path.join(config.beats_24h, beat_file))
-        rpeak_in = open(os.path.join(config.R_24h, data_name + "-Rpeaks.txt"))
+        beats_in = open(os.path.join(beats_24h_dir, beat_file))
+        rpeak_in = open(os.path.join(R_24h_dir, data_name + "-Rpeaks.txt"))
         beats = beats_in.readline().split(",")[1:]
         rpeaks = rpeak_in.readline().split(",")[1:]
         if not len(beats) == len(rpeaks):
@@ -979,9 +983,9 @@ def main():
             continue
         add_num, checked_mybeats = check_beats(beats, rpeaks, fs=240)
         print("补充了{}个心拍".format(add_num))
-        save_mybeats(checked_mybeats, data_name + "-mybeats.txt", config.mybeats_24h)
+        save_mybeats(checked_mybeats, data_name + "-mybeats.txt", mybeats_24h_dir)
     # ③读取mybeats并进行预测，存储标签
-    Resnet = getattr(models, config.model_name)(num_classes=config.num_classes)
+    Resnet = getattr(models, "resnet34_cbam_ch1")(num_classes=10)
     Resnet.load_state_dict(
         torch.load(
             "../assets/best_w.pth",
@@ -994,11 +998,11 @@ def main():
         for data_name in os.listdir(data_24h_file_dir):
             name = data_name.split(".")[0] + "-mybeats.txt"
             print(name)
-            my_beats = load_mybeats(name, config.mybeats_24h)
+            my_beats = load_mybeats(name, mybeats_24h_dir)
             classification_beats(
                 data_name,
                 data_24h_file_dir,
-                config.mybeats_24h,
+                mybeats_24h_dir,
                 my_beats,
                 Resnet=Resnet,
                 device=device,
@@ -1006,12 +1010,12 @@ def main():
                 ori_fs=ori_fs,
             )
     # ④读取带有标签的mybeats，并进行统计
-    load_dir = config.mybeats_24h
+    load_dir = mybeats_24h_dir
     for data_name in os.listdir(data_24h_file_dir):
         name = data_name.split(".")[0] + "_mybeats_withlabel_v1.3.txt"
         my_beats = load_mybeats(name, load_dir)
         analyze_mybeats(
-            my_beats, data_name.split(".")[0], save_dir=config.report_24h, fs=fs
+            my_beats, data_name.split(".")[0], save_dir=report_24h_dir, fs=fs
         )
 
 
