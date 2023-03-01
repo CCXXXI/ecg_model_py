@@ -894,19 +894,6 @@ def get_labels(data, checked_beats, fs, ori_fs):
         )
 
 
-def save_beats(beats: list[Beat], path: str):
-    with open(path, "w", encoding="utf-8") as f_out:
-        for beat in beats:
-            f_out.write(str(beat.position))
-            f_out.write(",")
-            f_out.write(str(beat.r_peak))
-            f_out.write(",")
-            f_out.write(beat.label)
-            f_out.write(",")
-            f_out.write(str(beat.is_new))
-            f_out.write("\n")
-
-
 def save_dict(data: dict[Any, Any], path: str):
     with open(
         path,
@@ -935,7 +922,8 @@ def main():
     labelled_beats: list[Beat]
     name2cnt: dict[str, int]
     labelled_beats, name2cnt = get_labels(data, checked_beats, fs, ori_fs)
-    save_beats(labelled_beats, "../assets/output/labelled_beats.txt")
+    with open("../assets/output/labelled_beats.txt", "w", encoding="utf-8") as f:
+        print(*labelled_beats, sep="\n", file=f)
     save_dict(name2cnt, "../assets/output/name2cnt.txt")
 
     analyze_beats(labelled_beats, output_path="../assets/output/report.txt", fs=fs)
