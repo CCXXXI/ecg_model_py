@@ -6,7 +6,6 @@ from typing import Final
 
 import numpy as np
 import torch
-import tqdm
 from scipy import integrate, signal
 from scipy.interpolate import interp1d
 from torch.nn.functional import softmax
@@ -195,10 +194,8 @@ def get_24h_beats(data, u_net, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
     beats = []
     r_peaks = []
     cur_s = 0
-    pbar = tqdm.tqdm(total=len_data)
     while cur_s < len_data:
         if cur_s + len_u_net <= len_data:
-            pbar.update(len_u_net)
             now_s = cur_s + len_u_net
         else:
             break
@@ -223,7 +220,6 @@ def get_24h_beats(data, u_net, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
                 r_peaks.append(r + cur_s)
 
         cur_s += 9 * 60 * fs
-    pbar.close()
     logging.info(f"提取成功，提取出{len(beats)}个心拍")
     return beats, r_peaks
 
@@ -285,19 +281,12 @@ def classification_beats(
         "噪声",
     ]
     label_cnt = {label: 0 for label in labels}
-    pbar = tqdm.tqdm(total=len(beats))
-    pbar_num = 0
 
     batch_size = 64
     input_tensor = []
     input_beats = []
     with torch.no_grad():
         for idx, beat in enumerate(beats):
-            pbar_num += 1
-            if pbar_num >= 100:
-                pbar_num = 0
-                pbar.update(100)
-
             if beat.position < half_len or beat.position >= data.shape[0] - half_len:
                 beat.label = ""
                 continue
@@ -427,13 +416,7 @@ def analyze_beats(my_beats, output_path):
     iteration_num = 0
     len_my_beats = len(my_beats)
 
-    pbar = tqdm.tqdm(total=len(my_beats))
-    pbar_num = 0
     for index, my_beat in enumerate(my_beats):
-        pbar_num += 1
-        if pbar_num >= 100:
-            pbar_num = 0
-            pbar.update(100)
         if my_beat.label == "":
             continue
         rr.append(my_beat.r_peak if not my_beat.r_peak == -1 else my_beat.position)
