@@ -1,5 +1,5 @@
+import logging
 import math
-import time
 from dataclasses import dataclass
 from pprint import pp
 from typing import Final
@@ -18,6 +18,8 @@ from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 # noinspection PyStatementEffect
 CBR_1D, Unet_1D
 
+
+logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -183,17 +185,13 @@ def u_net_r_peak(x):
 
 def get_24h_beats(data, u_net, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
     """提取R波和心拍"""
-
-    print("###正在重采样原始信号###")
-    start = time.time()
+    logging.info("重采样原始信号")
     data = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net = 10 * 60 * fs
-    end = time.time()
-    print("###重采样成功，采样后数据长度：{}###，耗时：{}s".format(data.shape[0], end - start))
+    logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
 
-    print("###正在提取波群信息###")
+    logging.info("提取波群信息")
     len_data = data.shape[0]
-    start = time.time()
     beats = []
     r_peaks = []
     cur_s = 0
@@ -225,9 +223,8 @@ def get_24h_beats(data, u_net, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
                 r_peaks.append(r + cur_s)
 
         cur_s += 9 * 60 * fs
-    end = time.time()
     pbar.close()
-    print("###提取成功，提取出{}个心拍，耗时：{}s###".format(len(beats), end - start))
+    logging.info(f"提取成功，提取出{len(beats)}个心拍")
     return beats, r_peaks
 
 
@@ -266,15 +263,14 @@ def classification_beats(
 ):
     half_len = int(0.75 * fs)
 
-    print("###正在重采样原始信号###")
-    start = time.time()
+    logging.info("重采样原始信号")
+
     data = signal.resample(data, len(data) * fs // ori_fs)
     data = bsw(data, band_hz=0.5)
-    end = time.time()
-    print("###重采样成功，采样后数据长度：{}###，耗时：{}s".format(data.shape[0], end - start))
 
-    print("###正在分类心拍###")
-    start = time.time()
+    logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
+
+    logging.info("分类心拍")
 
     labels = [
         "窦性心律",
@@ -329,8 +325,7 @@ def classification_beats(
                 input_tensor = []
                 input_beats = []
 
-    end = time.time()
-    print("###分类结束，耗时：{}###".format(end - start))
+    logging.info("分类结束")
 
     return beats, label_cnt
 
@@ -848,7 +843,7 @@ def get_checked_beats(beats, r_peaks):
     assert len(beats) == len(r_peaks), "提取出的心拍数量与 R 波数量不同"
 
     add_num, checked_beats = check_beats(beats, r_peaks)
-    print("补充了{}个心拍".format(add_num))
+    logging.info(f"补充了{add_num}个心拍")
     return checked_beats
 
 
