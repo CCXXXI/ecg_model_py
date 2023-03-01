@@ -930,9 +930,9 @@ def main():
     r_peaks: list[np.int64]
     beats, r_peaks = get_r_peaks(data, fs, ori_fs)
     with open("../assets/output/beats.txt", "w") as f:
-        print(*beats, sep=",", file=f)
+        print(*beats, sep="\n", file=f)
     with open("../assets/output/r_peaks.txt", "w") as f:
-        print(*r_peaks, sep=",", file=f)
+        print(*r_peaks, sep="\n", file=f)
 
     checked_beats: list[Beat] = get_checked_beats(beats, r_peaks)
     save_beats(checked_beats, "../assets/output/checked_beats.txt")
