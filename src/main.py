@@ -933,7 +933,7 @@ def main():
     data_24h_file_dir = config.dir_24h
     # ①提取R波切分心拍
     with torch.no_grad():
-        Unet = torch.load("U_net/240HZ_t+c_v2_best.pt", map_location=device)
+        Unet = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
         Unet.eval()
         for i in os.listdir(data_24h_file_dir):
             with open(
