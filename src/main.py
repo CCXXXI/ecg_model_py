@@ -921,30 +921,32 @@ def get_r_peaks(beats_24h_dir, dir_24h, fs, ori_fs, r_24h_dir):
     with torch.no_grad():
         u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
         u_net.eval()
-        for i in os.listdir(dir_24h):
+        for filename in os.listdir(dir_24h):
             with open(
-                os.path.join(beats_24h_dir, "{}-beats.txt".format(i.split(".")[0])),
+                os.path.join(
+                    beats_24h_dir, "{}-beats.txt".format(filename.split(".")[0])
+                ),
                 "w",
                 encoding="utf-8",
             ) as output1, open(
-                os.path.join(r_24h_dir, "{}-Rpeaks.txt".format(i.split(".")[0])),
+                os.path.join(r_24h_dir, "{}-Rpeaks.txt".format(filename.split(".")[0])),
                 "w",
                 encoding="utf-8",
             ) as output2:
                 beats, r_peaks = get_24h_beats(
-                    i,
+                    filename,
                     dir_24h,
                     u_net=u_net,
                     fs=fs,
                     ori_fs=ori_fs,
                 )
-                print("{}-{}".format(i, len(beats)))
-                output1.write(i)
+                print("{}-{}".format(filename, len(beats)))
+                output1.write(filename)
                 for beat in beats:
                     output1.write(",")
                     output1.write(str(beat))
                 output1.write("\n")
-                output2.write(i)
+                output2.write(filename)
                 for R_peak in r_peaks:
                     output2.write(",")
                     output2.write(str(R_peak))
