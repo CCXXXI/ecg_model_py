@@ -52,13 +52,17 @@ def bsw(data: npt.NDArray[np.float64], band_hz: float) -> npt.NDArray[np.float64
     return signal.filtfilt(b, a, data)
 
 
-def output_sliding_voting_v2(ori_output, window=5, type_num=4):
-    output = np.array(ori_output)
-    n = len(output)
-    half_window = int(window / 2)
-    cnt = np.zeros((type_num,), dtype=np.int32)
-    l_index = 0
-    r_index = -1
+def output_sliding_voting_v2(
+    ori_output: npt.NDArray[np.int64],
+) -> npt.NDArray[np.int64]:
+    window: Final[int] = 9
+
+    output: npt.NDArray[np.int64] = np.array(ori_output)
+    n: int = len(output)
+    half_window: int = int(window / 2)
+    cnt: npt.NDArray[np.int32] = np.zeros((4,), dtype=np.int32)
+    l_index: int = 0
+    r_index: int = -1
     for i in range(n):
         if r_index - l_index + 1 == window and half_window < i < n - half_window:
             cnt[ori_output[l_index]] -= 1
@@ -95,7 +99,7 @@ def u_net_peak(
     pred = model(x)
     out_pred = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
     out_pred = np.reshape(out_pred, len_x)
-    output = output_sliding_voting_v2(out_pred, 9)
+    output = output_sliding_voting_v2(out_pred)
 
     p = output == 0  # P波
     n = output == 1  # QRS
