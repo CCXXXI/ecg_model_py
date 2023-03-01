@@ -22,7 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class Beat:
-    def __init__(self, position: int, r_peak: int, is_new: bool, label=""):
+    def __init__(self, position: int, r_peak: int, is_new: bool, label: str = ""):
         self.position = position
         self.r_peak = r_peak
         # 定义补充心拍  处理噪声和室扑，室颤
