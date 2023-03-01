@@ -926,30 +926,29 @@ def get_r_peaks(beats_24h_dir, dir_24h, fs, ori_fs, r_24h_dir):
                 os.path.join(beats_24h_dir, "{}-beats.txt".format(i.split(".")[0])),
                 "w",
                 encoding="utf-8",
-            ) as output1:
-                with open(
-                    os.path.join(r_24h_dir, "{}-Rpeaks.txt".format(i.split(".")[0])),
-                    "w",
-                    encoding="utf-8",
-                ) as output2:
-                    beats, r_peaks = get_24h_beats(
-                        i,
-                        dir_24h,
-                        u_net=u_net,
-                        fs=fs,
-                        ori_fs=ori_fs,
-                    )
-                    print("{}-{}".format(i, len(beats)))
-                    output1.write(i)
-                    for beat in beats:
-                        output1.write(",")
-                        output1.write(str(beat))
-                    output1.write("\n")
-                    output2.write(i)
-                    for R_peak in r_peaks:
-                        output2.write(",")
-                        output2.write(str(R_peak))
-                    output2.write("\n")
+            ) as output1, open(
+                os.path.join(r_24h_dir, "{}-Rpeaks.txt".format(i.split(".")[0])),
+                "w",
+                encoding="utf-8",
+            ) as output2:
+                beats, r_peaks = get_24h_beats(
+                    i,
+                    dir_24h,
+                    u_net=u_net,
+                    fs=fs,
+                    ori_fs=ori_fs,
+                )
+                print("{}-{}".format(i, len(beats)))
+                output1.write(i)
+                for beat in beats:
+                    output1.write(",")
+                    output1.write(str(beat))
+                output1.write("\n")
+                output2.write(i)
+                for R_peak in r_peaks:
+                    output2.write(",")
+                    output2.write(str(R_peak))
+                output2.write("\n")
 
 
 def get_my_beats(beats_24h_dir, my_beats_24h_dir, r_24h_dir):
