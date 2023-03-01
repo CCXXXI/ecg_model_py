@@ -51,7 +51,7 @@ def transform(sig):
     return sig
 
 
-def bsw(data, band_hz=0.5, fs=240):
+def bsw(data, band_hz, fs):
     wn1 = 2 * band_hz / fs  # 只截取5hz以上的数据
     # noinspection PyTupleAssignmentBalance
     b, a = signal.butter(1, wn1, btype="high")
@@ -198,9 +198,7 @@ def u_net_r_peak(x):
     return r_list
 
 
-def get_24h_beats(
-    data, u_net=None, fs=240, ori_fs=250
-) -> tuple[list[np.int32], list[np.int64]]:
+def get_24h_beats(data, u_net, fs, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
     """提取R波和心拍"""
 
     print("###正在重采样原始信号###")
@@ -252,7 +250,7 @@ def get_24h_beats(
     return beats, r_peaks
 
 
-def check_beats(beats, r_peaks, fs=240):
+def check_beats(beats, r_peaks, fs):
     beats = np.array(beats, dtype=int)
     r_peaks = np.array(r_peaks, dtype=int)
     checked_beats = [Beat(position=beats[0], r_peak=r_peaks[0], new=False)]
@@ -282,9 +280,9 @@ def check_beats(beats, r_peaks, fs=240):
 def classification_beats(
     data,
     beats,
-    resnet=None,
-    fs=240,
-    ori_fs=250,
+    resnet,
+    fs,
+    ori_fs,
 ):
     half_len = int(0.75 * fs)
 
@@ -423,7 +421,7 @@ def sample_to_time(position, fs):
     return h, m, s
 
 
-def analyze_beats(my_beats, output_path, fs=240):
+def analyze_beats(my_beats, output_path, fs):
     """统计带有标签的 beats"""
     n_diff = []
     n_time = []
