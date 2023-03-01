@@ -683,9 +683,9 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
         n_diff_num = 0
         for diffs in n_diff:
             for diff in diffs:
-                if diff > n_max_diff and diff < 2 * fs:
+                if n_max_diff < diff < 2 * fs:
                     n_max_diff = diff
-                if diff < n_min_diff and diff > 0.3 * fs:
+                if 0.3 * fs < diff < n_min_diff:
                     n_min_diff = diff
                 n_diff_sum += diff
                 n_diff_num += 1
@@ -737,9 +737,9 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
             af_diff_num = 0
             for diffs in af_diff:
                 for diff in diffs:
-                    if diff > af_max_diff and diff < 1.5 * fs:  # 最慢不能低于100心率
+                    if af_max_diff < diff < 1.5 * fs:  # 最慢不能低于100心率
                         af_max_diff = diff
-                    if diff < af_min_diff and diff > 0.2 * fs:  # 最快不能高于300心率
+                    if 0.2 * fs < diff < af_min_diff:  # 最快不能高于300心率
                         af_min_diff = diff
                     af_diff_sum += diff
                     af_diff_num += 1
@@ -775,7 +775,7 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
                     apb_short_array_diff.append(np.diff(apb_s_a))
                 for index, diffs in enumerate(apb_short_array_diff):
                     for diff in diffs:
-                        if diff < apb_short_array_min_diff and diff > 0.2 * fs:
+                        if 0.2 * fs < diff < apb_short_array_min_diff:
                             apb_short_array_min_index = index
                             apb_short_array_min_diff = diff
                 apb_short_array_ventricular_max_rate = 60 / (
