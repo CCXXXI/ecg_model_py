@@ -1,7 +1,7 @@
 import math
 import os
 import time
-from typing import Final
+from typing import Final, Any
 
 import numpy as np
 import torch
@@ -31,11 +31,10 @@ name2idx: Final[dict[str, int]] = {
     "噪声": 9,
 }
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class MyBeat:
+class Beat:
     def __init__(self, position=0, r_peak=-1, label="", new=False):
         self.position = position
         # 定义补充心拍  处理噪声和室扑，室颤
@@ -212,7 +211,9 @@ def u_net_r_peak(x):
     return r_list
 
 
-def get_24h_beats(data, u_net=None, fs=240, ori_fs=250):
+def get_24h_beats(
+    data, u_net=None, fs=240, ori_fs=250
+) -> tuple[list[np.int32], list[np.int64]]:
     """提取R波和心拍"""
 
     print("###正在重采样原始信号###")
@@ -267,7 +268,7 @@ def get_24h_beats(data, u_net=None, fs=240, ori_fs=250):
 def check_beats(beats, r_peaks, fs=240):
     beats = np.array(beats, dtype=int)
     r_peaks = np.array(r_peaks, dtype=int)
-    checked_beats = [MyBeat(position=beats[0], r_peak=r_peaks[0], new=False)]
+    checked_beats = [Beat(position=beats[0], r_peak=r_peaks[0], new=False)]
     limit = 2 * 1.5 * fs
     beats_diff = np.diff(beats)
     add_num = 0
@@ -278,23 +279,21 @@ def check_beats(beats, r_peaks, fs=240):
             end = beats[index + 1]
             while (end - cur) >= limit:
                 new_beat = cur + int(limit / 2)
-                checked_beats.append(MyBeat(position=new_beat, new=True))
+                checked_beats.append(Beat(position=new_beat, new=True))
                 cur = new_beat
                 add_num += 1
             checked_beats.append(
-                MyBeat(position=beats[index + 1], r_peak=r_peaks[index + 1], new=False)
+                Beat(position=beats[index + 1], r_peak=r_peaks[index + 1], new=False)
             )
         else:
             checked_beats.append(
-                MyBeat(position=beats[index + 1], r_peak=r_peaks[index + 1], new=False)
+                Beat(position=beats[index + 1], r_peak=r_peaks[index + 1], new=False)
             )
     return add_num, checked_beats
 
 
 def classification_beats(
     data,
-    data_name,
-    save_dir,
     beats,
     resnet=None,
     fs=240,
@@ -354,37 +353,22 @@ def classification_beats(
                 input_tensor = []
                 input_beats = []
 
-    save_my_beats(
-        my_beats=beats,
-        data_name=data_name.split(".")[0] + "_mybeats_withlabel_v1.3.txt",
-        save_dir=save_dir,
-    )
     end = time.time()
-    print("###{} 分类结束，耗时：{}###".format(data_name, end - start))
-    with open(
-        os.path.join(
-            save_dir, data_name.split(".")[0] + "_classification_cnt_v1.3.txt"
-        ),
-        "w",
-        encoding="utf-8",
-    ) as f_out:
-        for name, cnt in name2cnt.items():
-            f_out.write(name)
-            f_out.write(":")
-            f_out.write(str(cnt))
-            f_out.write("\n")
+    print("###分类结束，耗时：{}###".format(end - start))
+
+    return beats, name2cnt
 
 
-def save_my_beats(my_beats, data_name, save_dir):
-    with open(os.path.join(save_dir, data_name), "w", encoding="utf-8") as f_out:
-        for my_beat in my_beats:
-            f_out.write(str(my_beat.position))
+def save_beats(beats: list[Beat], path: str):
+    with open(path, "w", encoding="utf-8") as f_out:
+        for beat in beats:
+            f_out.write(str(beat.position))
             f_out.write(",")
-            f_out.write(str(my_beat.r_peak))
+            f_out.write(str(beat.r_peak))
             f_out.write(",")
-            f_out.write(my_beat.label)
+            f_out.write(beat.label)
             f_out.write(",")
-            f_out.write(str(my_beat.new))
+            f_out.write(str(beat.new))
             f_out.write("\n")
 
 
@@ -394,7 +378,7 @@ def load_my_beats(data_name, load_dir):
     for line in fin:
         line = line.strip().split(",")
 
-        my_beat = MyBeat(
+        my_beat = Beat(
             position=int(line[0]),
             r_peak=int(line[1]),
             label=line[2],
@@ -471,7 +455,8 @@ def sample_to_time(position, fs):
     return h, m, s
 
 
-def analyze_my_beats(my_beats, data_name, save_dir, fs=240):
+def analyze_beats(my_beats, output_path, fs=240):
+    """统计带有标签的 beats"""
     n_diff = []
     n_time = []
     n_diff_flatten_with_r_peak = []
@@ -662,9 +647,7 @@ def analyze_my_beats(my_beats, data_name, save_dir, fs=240):
 
     len_h = ((my_beats[-1].position / fs) + 0.75) / (60 * 60)
 
-    with open(
-        os.path.join(save_dir, data_name + "_report_lfhf.txt"), "w", encoding="utf-8"
-    ) as f_out:
+    with open(output_path, "w", encoding="utf-8") as f_out:
         # 计算窦性心室率
         n_max_diff = 0
         n_min_diff = 10000
@@ -681,7 +664,7 @@ def analyze_my_beats(my_beats, data_name, save_dir, fs=240):
         n_ventricular_mean_rate = int(60 / (n_diff_sum / n_diff_num / fs))
         n_ventricular_max_rate = int(60 / (n_min_diff / fs))
         n_ventricular_min_rate = int(60 / (n_max_diff / fs))
-        f_out.write("------数据{}------\n".format(data_name))
+        f_out.write("------数据------\n")
         display_number = 1
         if 100 >= n_ventricular_mean_rate >= 60:
             n_state = "窦性心律"
@@ -901,59 +884,30 @@ def analyze_my_beats(my_beats, data_name, save_dir, fs=240):
         f_out.write("    lf/hf:{}".format(lf / hf))
 
 
-def get_r_peaks(beats_24h_dir, dir_24h, fs, ori_fs, r_24h_dir):
+def get_r_peaks(data, fs, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
     """提取R波切分心拍"""
     with torch.no_grad():
         u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
         u_net.eval()
-        for filename in os.listdir(dir_24h):
-            with open(
-                os.path.join(
-                    beats_24h_dir, "{}-beats.txt".format(filename.split(".")[0])
-                ),
-                "w",
-                encoding="utf-8",
-            ) as output1, open(
-                os.path.join(r_24h_dir, "{}-Rpeaks.txt".format(filename.split(".")[0])),
-                "w",
-                encoding="utf-8",
-            ) as output2:
-                beats, r_peaks = get_24h_beats(
-                    np.loadtxt(os.path.join(dir_24h, filename)),
-                    u_net=u_net,
-                    fs=fs,
-                    ori_fs=ori_fs,
-                )
-                print("{}-{}".format(filename, len(beats)))
-                output1.write(filename)
-                for beat in beats:
-                    output1.write(",")
-                    output1.write(str(beat))
-                output1.write("\n")
-                output2.write(filename)
-                for R_peak in r_peaks:
-                    output2.write(",")
-                    output2.write(str(R_peak))
-                output2.write("\n")
+
+        return get_24h_beats(
+            data,
+            u_net=u_net,
+            fs=fs,
+            ori_fs=ori_fs,
+        )
 
 
-def get_my_beats(beats_24h_dir, my_beats_24h_dir, r_24h_dir):
+def get_checked_beats(beats, r_peaks):
     """补充心拍"""
-    for beat_file in os.listdir(beats_24h_dir):
-        data_name = beat_file.split("-")[0]
-        beats_in = open(os.path.join(beats_24h_dir, beat_file))
-        r_peak_in = open(os.path.join(r_24h_dir, data_name + "-Rpeaks.txt"))
-        beats = beats_in.readline().split(",")[1:]
-        r_peaks = r_peak_in.readline().split(",")[1:]
-        if not len(beats) == len(r_peaks):
-            print("error:提取出的心拍数量{}与R波数量{}不同".format(len(beats), len(r_peaks)))
-            continue
-        add_num, checked_my_beats = check_beats(beats, r_peaks, fs=240)
-        print("补充了{}个心拍".format(add_num))
-        save_my_beats(checked_my_beats, data_name + "-mybeats.txt", my_beats_24h_dir)
+    if not len(beats) == len(r_peaks):
+        print("error:提取出的心拍数量{}与R波数量{}不同".format(len(beats), len(r_peaks)))
+    add_num, checked_beats = check_beats(beats, r_peaks, fs=240)
+    print("补充了{}个心拍".format(add_num))
+    return checked_beats
 
 
-def get_labels(dir_24h, fs, my_beats_24h_dir, ori_fs):
+def get_labels(data, checked_beats, fs, ori_fs):
     """读取mybeats并进行预测，存储标签"""
     resnet = getattr(models, "resnet34_cbam_ch1")(num_classes=10)
     resnet.load_state_dict(
@@ -965,49 +919,61 @@ def get_labels(dir_24h, fs, my_beats_24h_dir, ori_fs):
     resnet = resnet.to(device)
     resnet.eval()
     with torch.no_grad():
-        for data_name in os.listdir(dir_24h):
-            name = data_name.split(".")[0] + "-mybeats.txt"
-            print(name)
-            my_beats = load_my_beats(name, my_beats_24h_dir)
-            classification_beats(
-                np.loadtxt(os.path.join(dir_24h, data_name)),
-                data_name,
-                my_beats_24h_dir,
-                my_beats,
-                resnet=resnet,
-                fs=fs,
-                ori_fs=ori_fs,
-            )
-
-
-def get_report(dir_24h, fs, my_beats_24h_dir, report_24h_dir):
-    """读取带有标签的mybeats，并进行统计"""
-    for data_name in os.listdir(dir_24h):
-        name = data_name.split(".")[0] + "_mybeats_withlabel_v1.3.txt"
-        my_beats = load_my_beats(name, my_beats_24h_dir)
-        analyze_my_beats(
-            my_beats, data_name.split(".")[0], save_dir=report_24h_dir, fs=fs
+        return classification_beats(
+            data,
+            checked_beats,
+            resnet=resnet,
+            fs=fs,
+            ori_fs=ori_fs,
         )
 
 
-def main():
-    dir_24h = "../assets/bisha_data"  # 24小时数据路径
-    beats_24h_dir = "../assets/bisha_24hbeat"  # 24小时心拍列表，由24小时数据路径内提取出
-    r_24h_dir = "../assets/bisha_24hRpeak"  # 24小时R波列表
-    my_beats_24h_dir = "../assets/bisha_24hMybeat"
-    report_24h_dir = "../assets/bisha_24hreport"
+def save_dict(data: dict[Any, Any], path: str):
+    with open(
+        path,
+        "w",
+        encoding="utf-8",
+    ) as f:
+        for name, cnt in data.items():
+            f.write(name)
+            f.write(":")
+            f.write(str(cnt))
+            f.write("\n")
 
-    os.makedirs(beats_24h_dir, exist_ok=True)
-    os.makedirs(r_24h_dir, exist_ok=True)
-    os.makedirs(my_beats_24h_dir, exist_ok=True)
-    os.makedirs(report_24h_dir, exist_ok=True)
+
+def save_list(data: list[Any], path: str):
+    with open(
+        path,
+        "w",
+        encoding="utf-8",
+    ) as f:
+        for item in data:
+            f.write(str(item))
+            f.write(",")
+
+
+def main():
     fs = 240
     ori_fs = 250
 
-    get_r_peaks(beats_24h_dir, dir_24h, fs, ori_fs, r_24h_dir)
-    get_my_beats(beats_24h_dir, my_beats_24h_dir, r_24h_dir)
-    get_labels(dir_24h, fs, my_beats_24h_dir, ori_fs)
-    get_report(dir_24h, fs, my_beats_24h_dir, report_24h_dir)
+    data = np.loadtxt("../assets/input.txt")
+
+    beats: list[np.int32]
+    r_peaks: list[np.int64]
+    beats, r_peaks = get_r_peaks(data, fs, ori_fs)
+    save_list(beats, "../assets/output/beats.txt")
+    save_list(r_peaks, "../assets/output/r_peaks.txt")
+
+    checked_beats: list[Beat] = get_checked_beats(beats, r_peaks)
+    save_beats(checked_beats, "../assets/output/checked_beats.txt")
+
+    labelled_beats: list[Beat]
+    name2cnt: dict[str, int]
+    labelled_beats, name2cnt = get_labels(data, checked_beats, fs, ori_fs)
+    save_beats(labelled_beats, "../assets/output/labelled_beats.txt")
+    save_dict(name2cnt, "../assets/output/name2cnt.txt")
+
+    analyze_beats(labelled_beats, output_path="../assets/output/report.txt", fs=fs)
 
 
 if __name__ == "__main__":
