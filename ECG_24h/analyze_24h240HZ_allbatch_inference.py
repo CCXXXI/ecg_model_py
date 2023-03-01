@@ -910,20 +910,7 @@ def analyze_mybeats(mybeats, data_name, save_dir, fs=240):
 
 
 def load_input(data_dir_path, data_name, ori_fs):
-    print("###正在加载动态心电图文件：{}###".format(data_name))
-    start = time.time()
-    fin = open(os.path.join(data_dir_path, data_name))
-    data = list(map(float, fin.readline().strip().strip(",").split(",")))
-    fin.close()
-    data = np.array(data)
-    data = data[: ori_fs * 60 * 10]
-    end = time.time()
-    print(
-        "###加载文件{}成功，数据时长：{}小时，耗时：{}s###".format(
-            data_name, data.shape[0] / (ori_fs * 3600), end - start
-        )
-    )
-    return data
+    return np.loadtxt(os.path.join(data_dir_path, data_name))
 
 
 if __name__ == "__main__":
