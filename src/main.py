@@ -1,7 +1,7 @@
 import math
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Final
 
 import numpy as np
 import torch
@@ -20,6 +20,8 @@ CBR_1D, Unet_1D
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+fs: Final[int] = 240
 
 
 @dataclass
@@ -51,7 +53,7 @@ def transform(sig):
     return sig
 
 
-def bsw(data, band_hz, fs):
+def bsw(data, band_hz):
     wn1 = 2 * band_hz / fs  # 只截取5hz以上的数据
     # noinspection PyTupleAssignmentBalance
     b, a = signal.butter(1, wn1, btype="high")
@@ -198,7 +200,7 @@ def u_net_r_peak(x):
     return r_list
 
 
-def get_24h_beats(data, u_net, fs, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
+def get_24h_beats(data, u_net, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
     """提取R波和心拍"""
 
     print("###正在重采样原始信号###")
@@ -250,7 +252,7 @@ def get_24h_beats(data, u_net, fs, ori_fs) -> tuple[list[np.int32], list[np.int6
     return beats, r_peaks
 
 
-def check_beats(beats, r_peaks, fs):
+def check_beats(beats, r_peaks):
     beats = np.array(beats, dtype=int)
     r_peaks = np.array(r_peaks, dtype=int)
     checked_beats = [Beat(position=beats[0], r_peak=r_peaks[0], is_new=False)]
@@ -281,7 +283,6 @@ def classification_beats(
     data,
     beats,
     resnet,
-    fs,
     ori_fs,
 ):
     half_len = int(0.75 * fs)
@@ -289,7 +290,7 @@ def classification_beats(
     print("###正在重采样原始信号###")
     start = time.time()
     data = resample(data, len(data) * fs // ori_fs)
-    data = bsw(data, band_hz=0.5, fs=fs)
+    data = bsw(data, band_hz=0.5)
     end = time.time()
     print("###重采样成功，采样后数据长度：{}###，耗时：{}s".format(data.shape[0], end - start))
 
@@ -413,7 +414,7 @@ def get_lf_hf(rr_intervals, rr_interval_times):
     return lf_integrated, hf_integrated
 
 
-def sample_to_time(position, fs):
+def sample_to_time(position):
     total_seconds = position / fs
     h = int(total_seconds // 3600)
     m = int((total_seconds % 3600) // 60)
@@ -421,7 +422,7 @@ def sample_to_time(position, fs):
     return h, m, s
 
 
-def analyze_beats(my_beats, output_path, fs):
+def analyze_beats(my_beats, output_path):
     """统计带有标签的 beats"""
     n_diff = []
     n_time = []
@@ -656,7 +657,7 @@ def analyze_beats(my_beats, output_path, fs):
                     n_stop_max = beats[1]
                     n_stop_index = beats[0]
             n_stop_max_seconds = n_stop_max / fs
-            n_stop_max_h, n_stop_max_m, n_stop_max_s = sample_to_time(n_stop_index, fs)
+            n_stop_max_h, n_stop_max_m, n_stop_max_s = sample_to_time(n_stop_index)
             f_out.write(
                 "    发生了{}次窦性停搏,最长的一次为：{:.1f}s，发生于:{}h-{}m-{}s\n".format(
                     len(n_stop_beats),
@@ -720,7 +721,7 @@ def analyze_beats(my_beats, output_path, fs):
                     apb_short_array_min_diff / fs
                 )
                 apb_shor_array_h, apb_shor_array_m, apb_shor_array_s = sample_to_time(
-                    apb_short_array[apb_short_array_min_index][0], fs
+                    apb_short_array[apb_short_array_min_index][0]
                 )
                 f_out.write(
                     "其中，短阵房速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".format(
@@ -760,7 +761,7 @@ def analyze_beats(my_beats, output_path, fs):
                     vpb_short_array_min_diff / fs
                 )
                 vpb_shor_array_h, vpb_shor_array_m, vpb_shor_array_s = sample_to_time(
-                    vpb_short_array[vpb_short_array_min_index][0], fs
+                    vpb_short_array[vpb_short_array_min_index][0]
                 )
                 f_out.write(
                     "其中，短阵室速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".format(
@@ -777,7 +778,7 @@ def analyze_beats(my_beats, output_path, fs):
             display_number += 1
             f_out.write("{}、出现室扑室颤，如下：\n".format(display_number))
             for vf in vf:
-                vf_h, vf_m, vf_s = sample_to_time(vf[0], fs=240)
+                vf_h, vf_m, vf_s = sample_to_time(vf[0])
                 f_out.write(
                     "在{}h-{}m-{}s发生室扑室颤，持续时长{}s\n".format(vf_h, vf_m, vf_s, vf[1])
                 )
@@ -850,7 +851,7 @@ def analyze_beats(my_beats, output_path, fs):
         f_out.write("    lf/hf:{}".format(lf / hf))
 
 
-def get_r_peaks(data, fs, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
+def get_r_peaks(data, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
     """提取R波切分心拍"""
     with torch.no_grad():
         u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
@@ -859,7 +860,6 @@ def get_r_peaks(data, fs, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
         return get_24h_beats(
             data,
             u_net=u_net,
-            fs=fs,
             ori_fs=ori_fs,
         )
 
@@ -868,12 +868,12 @@ def get_checked_beats(beats, r_peaks):
     """补充心拍"""
     if not len(beats) == len(r_peaks):
         print("error:提取出的心拍数量{}与R波数量{}不同".format(len(beats), len(r_peaks)))
-    add_num, checked_beats = check_beats(beats, r_peaks, fs=240)
+    add_num, checked_beats = check_beats(beats, r_peaks)
     print("补充了{}个心拍".format(add_num))
     return checked_beats
 
 
-def get_labels(data, checked_beats, fs, ori_fs):
+def get_labels(data, checked_beats, ori_fs):
     """进行预测，获取标签"""
     resnet = getattr(models, "resnet34_cbam_ch1")(num_classes=10)
     resnet.load_state_dict(
@@ -889,7 +889,6 @@ def get_labels(data, checked_beats, fs, ori_fs):
             data,
             checked_beats,
             resnet=resnet,
-            fs=fs,
             ori_fs=ori_fs,
         )
 
@@ -908,25 +907,24 @@ def save_dict(data: dict[Any, Any], path: str):
 
 
 def main():
-    fs = 240
     ori_fs = 250
 
     data = np.loadtxt("../assets/input.txt")
 
     beats: list[np.int32]
     r_peaks: list[np.int64]
-    beats, r_peaks = get_r_peaks(data, fs, ori_fs)
+    beats, r_peaks = get_r_peaks(data, ori_fs)
 
     checked_beats: list[Beat] = get_checked_beats(beats, r_peaks)
 
     labelled_beats: list[Beat]
     label_cnt: dict[str, int]
-    labelled_beats, label_cnt = get_labels(data, checked_beats, fs, ori_fs)
+    labelled_beats, label_cnt = get_labels(data, checked_beats, ori_fs)
     with open("../assets/output/labelled_beats.txt", "w", encoding="utf-8") as f:
         print(*labelled_beats, sep="\n", file=f)
     save_dict(label_cnt, "../assets/output/label_cnt.txt")
 
-    analyze_beats(labelled_beats, output_path="../assets/output/report.txt", fs=fs)
+    analyze_beats(labelled_beats, output_path="../assets/output/report.txt")
 
 
 if __name__ == "__main__":
