@@ -43,12 +43,13 @@ def transform(sig: npt.NDArray[np.float64]) -> torch.Tensor:
     return torch.tensor(sig.copy(), dtype=torch.float)
 
 
-def bsw(data, band_hz):
-    wn1 = 2 * band_hz / fs  # 只截取5hz以上的数据
+def bsw(data: npt.NDArray[np.float64], band_hz: float) -> npt.NDArray[np.float64]:
+    wn1: float = 2 * band_hz / fs  # 只截取5hz以上的数据
+    b: npt.NDArray[np.float64]
+    a: npt.NDArray[np.float64]
     # noinspection PyTupleAssignmentBalance
     b, a = signal.butter(1, wn1, btype="high")
-    filtered_data = signal.filtfilt(b, a, data)
-    return filtered_data
+    return signal.filtfilt(b, a, data)
 
 
 def output_sliding_voting_v2(ori_output, window=5, type_num=4):
