@@ -292,8 +292,8 @@ def check_beats(beats, r_peaks, fs=240):
 
 
 def classification_beats(
+    data,
     data_name,
-    data_dir_path,
     save_dir,
     beats,
     resnet=None,
@@ -301,7 +301,6 @@ def classification_beats(
     ori_fs=250,
 ):
     half_len = int(0.75 * fs)
-    data = np.loadtxt(os.path.join(data_dir_path, data_name))
 
     print("###正在重采样原始信号###")
     start = time.time()
@@ -971,8 +970,8 @@ def get_labels(dir_24h, fs, my_beats_24h_dir, ori_fs):
             print(name)
             my_beats = load_my_beats(name, my_beats_24h_dir)
             classification_beats(
+                np.loadtxt(os.path.join(dir_24h, data_name)),
                 data_name,
-                dir_24h,
                 my_beats_24h_dir,
                 my_beats,
                 resnet=resnet,
