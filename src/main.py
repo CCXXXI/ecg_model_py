@@ -1,7 +1,6 @@
 import math
-import os
 import time
-from typing import Final, Any
+from typing import Any
 
 import numpy as np
 import torch
@@ -18,18 +17,6 @@ from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 # noinspection PyStatementEffect
 CBR_1D, Unet_1D
 
-name2idx: Final[dict[str, int]] = {
-    "窦性心律": 0,
-    "房性早搏": 1,
-    "心房扑动": 2,
-    "心房颤动": 3,
-    "室性早搏": 4,
-    "阵发性室上性心动过速": 5,
-    "心室预激": 6,
-    "室扑室颤": 7,
-    "房室传导阻滞": 8,
-    "噪声": 9,
-}
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -311,8 +298,19 @@ def classification_beats(
     print("###正在分类心拍###")
     start = time.time()
 
-    idx2name = {idx: name for name, idx in name2idx.items()}
-    name2cnt = {name: 0 for name in name2idx.keys()}
+    labels = [
+        "窦性心律",
+        "房性早搏",
+        "心房扑动",
+        "心房颤动",
+        "室性早搏",
+        "阵发性室上性心动过速",
+        "心室预激",
+        "室扑室颤",
+        "房室传导阻滞",
+        "噪声",
+    ]
+    name2cnt = {name: 0 for name in labels}
     pbar = tqdm.tqdm(total=len(beats))
     pbar_num = 0
 
@@ -348,8 +346,8 @@ def classification_beats(
                 for i, pred in enumerate(y_pred):
                     pred = pred.item()
                     beat = input_beats[i]
-                    name2cnt[idx2name[pred]] += 1
-                    beat.label = idx2name[pred]
+                    name2cnt[labels[pred]] += 1
+                    beat.label = labels[pred]
                 input_tensor = []
                 input_beats = []
 
