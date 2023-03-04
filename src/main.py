@@ -841,10 +841,12 @@ def infer(data, ori_fs):
 
 
 def main():
+    input_path = "../assets/input/107_leadII_10min.txt"
+
     load_models("../assets/")
 
     with torch.no_grad():
-        label_cnt, labelled_beats = infer(np.loadtxt("../assets/input.txt"), 250)
+        label_cnt, labelled_beats = infer(np.loadtxt(input_path), 250)
     report: str = analyze_beats(labelled_beats)
 
     with open("../assets/output/labelled_beats.txt", "w", encoding="utf-8") as f:
