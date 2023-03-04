@@ -26,6 +26,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 fs: Final[int] = 240
 
+u_net_path: str
+
+
+def set_models_path(path: str) -> None:
+    global u_net_path
+    u_net_path = path + "240HZ_t+c_v2_best.pt"
+
 
 @dataclass
 class Beat:
@@ -77,7 +84,6 @@ def output_sliding_voting_v2(
 
 def u_net_peak(
     data: NDArray[float],
-    model: Unet_1D,
 ) -> tuple[NDArray[bool], NDArray[bool], NDArray[bool], NDArray[bool]]:
     # 提取U-net波群信息
     x: NDArray[float] = data.copy()
@@ -94,7 +100,10 @@ def u_net_peak(
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
     x_tensor: Tensor = x_tensor.to(device)
 
-    pred: Tensor = model(x_tensor)
+    u_net: Unet_1D = torch.load(u_net_path, map_location=device)
+    u_net.eval()
+
+    pred: Tensor = u_net(x_tensor)
     out_pred: NDArray[int] = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
     out_pred: NDArray[int] = np.reshape(out_pred, len(x))
     output: NDArray[int] = output_sliding_voting_v2(out_pred)
@@ -185,9 +194,6 @@ def u_net_r_peak(x: NDArray[bool]) -> list[int]:
 
 def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]]:
     """提取R波切分心拍"""
-    u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
-    u_net.eval()
-
     logging.info("重采样原始信号")
     data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net: int = 10 * 60 * fs
@@ -207,7 +213,7 @@ def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]
         n: NDArray[bool]
         t: NDArray[bool]
         r: NDArray[bool]
-        p, n, t, r = u_net_peak(data[cur_s:now_s], model=u_net)
+        p, n, t, r = u_net_peak(data[cur_s:now_s])
 
         beat_list: list[int] = u_net_r_peak(n)
         r_list: list[int] = r_detection_u_net(data[cur_s:now_s], n)
@@ -850,6 +856,8 @@ def infer(data, ori_fs):
 
 
 def main():
+    set_models_path("../assets/")
+
     with torch.no_grad():
         label_cnt, labelled_beats = infer(np.loadtxt("../assets/input.txt"), 250)
     report: str = analyze_beats(labelled_beats)
