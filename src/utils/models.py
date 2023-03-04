@@ -1,7 +1,7 @@
 import torch
 
 from config import device
-from models_ import resnet34_cbam_ch1
+from ..models import resnet34_cbam_ch1
 
 u_net: torch.nn.Module
 res_net: torch.nn.Module

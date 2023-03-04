@@ -5,13 +5,10 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from data_types import Beat
-from get_checked_beats import get_checked_beats
-from get_labelled_beats import get_labelled_beats
-from get_r_peaks import get_r_peaks
-from get_report import get_report
-from models import load_models
-from models_.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
+from models import CBR_1D, Unet_1D
+from steps import get_report, get_checked_beats, get_labelled_beats, get_r_peaks
+from utils.data_types import Beat
+from utils.models import load_models
 
 # These classes must be imported, otherwise the model cannot be loaded.
 # noinspection PyStatementEffect

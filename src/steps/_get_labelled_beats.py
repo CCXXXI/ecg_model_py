@@ -6,9 +6,9 @@ from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
 
-import models
-from config import fs, device
-from data_types import Beat
+from utils import models
+from utils.config import fs, device
+from utils.data_types import Beat
 
 
 def _bsw(data: NDArray[float], band_hz: float) -> NDArray[float]:

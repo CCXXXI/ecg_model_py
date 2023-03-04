@@ -9,8 +9,8 @@ from scipy import signal
 from torch import Tensor
 from torch.nn.functional import softmax
 
-import models
-from config import device, fs
+from utils import models
+from utils.config import device, fs
 
 
 def _u_net_peak(

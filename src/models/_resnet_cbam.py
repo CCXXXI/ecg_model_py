@@ -8,7 +8,7 @@
 import torch.nn as nn
 from torch.nn import init
 
-from models_.cbam import CBAM
+from models._cbam import CBAM
 
 __all__ = [
     "BasicBlock",

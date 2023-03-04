@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from config import fs
-from data_types import Beat
+from utils.config import fs
+from utils.data_types import Beat
 
 
 def get_checked_beats(beats: list[int], r_peaks: list[int]) -> list[Beat]:
