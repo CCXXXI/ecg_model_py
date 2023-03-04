@@ -59,24 +59,17 @@ class ChannelGate(nn.Module):
             nn.ReLU(),
             nn.Linear(gate_channels // reduction_ratio, gate_channels),
         )
-        self.pool_types = ["avg", "max"]
 
     def forward(self, x):
-        channel_att_sum = None
-        for pool_type in self.pool_types:
-            if pool_type == "avg":
-                avg_pool = avg_pool1d(x, x.size(2), stride=x.size(2))
-                channel_att_raw = self.mlp(avg_pool)
-            elif pool_type == "max":
-                max_pool = max_pool1d(x, x.size(2), stride=x.size(2))
-                channel_att_raw = self.mlp(max_pool)
-            else:
-                assert False
+        # avg
+        avg_pool = avg_pool1d(x, x.size(2), stride=x.size(2))
+        channel_att_raw = self.mlp(avg_pool)
+        channel_att_sum = channel_att_raw
 
-            if channel_att_sum is None:
-                channel_att_sum = channel_att_raw
-            else:
-                channel_att_sum = channel_att_sum + channel_att_raw
+        # max
+        max_pool = max_pool1d(x, x.size(2), stride=x.size(2))
+        channel_att_raw = self.mlp(max_pool)
+        channel_att_sum = channel_att_sum + channel_att_raw
 
         scale = torch.sigmoid(channel_att_sum).unsqueeze(2).expand_as(x)
         return x * scale
