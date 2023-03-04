@@ -78,10 +78,10 @@ def u_net_peak(
     data: npt.NDArray[np.float64],
     model: Unet_1D,
 ) -> tuple[
-    npt.NDArray[np.bool],
-    npt.NDArray[np.bool],
-    npt.NDArray[np.bool],
-    npt.NDArray[np.bool],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
+    npt.NDArray[np.bool_],
 ]:
     # 提取U-net波群信息
     x: npt.NDArray[np.float64] = data.copy()
@@ -106,10 +106,10 @@ def u_net_peak(
     out_pred: npt.NDArray[np.int64] = np.reshape(out_pred, len_x)
     output: npt.NDArray[np.int64] = output_sliding_voting_v2(out_pred)
 
-    p: npt.NDArray[np.bool] = output == 0  # P波
-    n: npt.NDArray[np.bool] = output == 1  # QRS
-    t: npt.NDArray[np.bool] = output == 2  # t波
-    r: npt.NDArray[np.bool] = output == 3  # 其他
+    p: npt.NDArray[np.bool_] = output == 0  # P波
+    n: npt.NDArray[np.bool_] = output == 1  # QRS
+    t: npt.NDArray[np.bool_] = output == 2  # t波
+    r: npt.NDArray[np.bool_] = output == 3  # 其他
 
     return p, n, t, r
 
