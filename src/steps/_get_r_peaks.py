@@ -28,7 +28,8 @@ def _u_net_peak(
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
 
-    pred: Tensor = load_model("u_net.pt")(x_tensor)
+    model = load_model("u_net.pt")
+    pred: Tensor = model(x_tensor)
     out_pred: NDArray[int] = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
     out_pred: NDArray[int] = np.reshape(out_pred, len(x))
     output: NDArray[int] = _output_sliding_voting_v2(out_pred)

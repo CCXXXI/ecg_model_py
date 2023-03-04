@@ -70,9 +70,8 @@ def get_labelled_beats(
 
         if len(input_tensor) % batch_size == 0 or idx == len(beats) - 1:
             x_tensor = torch.vstack(input_tensor)
-            output: Tensor = torch.softmax(
-                load_model("res_net.pt")(x_tensor), dim=1
-            ).squeeze()
+            model = load_model("res_net.pt")
+            output: Tensor = torch.softmax(model(x_tensor), dim=1).squeeze()
 
             # 修改维度
             y_pred: Tensor = torch.argmax(output, dim=1, keepdim=False)
