@@ -78,7 +78,7 @@ def output_sliding_voting_v2(
 def u_net_peak(
     data: NDArray[float],
     model: Unet_1D,
-) -> tuple[NDArray[np.bool_], NDArray[np.bool_], NDArray[np.bool_], NDArray[np.bool_]]:
+) -> tuple[NDArray[bool], NDArray[bool], NDArray[bool], NDArray[bool]]:
     # 提取U-net波群信息
     x: NDArray[float] = data.copy()
     wn1: float = 1 / fs
@@ -99,20 +99,20 @@ def u_net_peak(
     out_pred: NDArray[int] = np.reshape(out_pred, len(x))
     output: NDArray[int] = output_sliding_voting_v2(out_pred)
 
-    p: NDArray[np.bool_] = output == 0  # P波
-    n: NDArray[np.bool_] = output == 1  # QRS
-    t: NDArray[np.bool_] = output == 2  # t波
-    r: NDArray[np.bool_] = output == 3  # 其他
+    p: NDArray[bool] = output == 0  # P波
+    n: NDArray[bool] = output == 1  # QRS
+    t: NDArray[bool] = output == 2  # t波
+    r: NDArray[bool] = output == 3  # 其他
 
     return p, n, t, r
 
 
-def r_detection_u_net(data: NDArray[float], n: NDArray[np.bool_]) -> list[int]:
+def r_detection_u_net(data: NDArray[float], n: NDArray[bool]) -> list[int]:
     # 获取R波波峰
     x: NDArray[float] = data.copy()
-    n_: NDArray[np.bool_] = np.array(n)
-    n_: NDArray[np.bool_] = np.insert(n_, len(x), False)
-    n_: NDArray[np.bool_] = np.insert(n_, 0, False)
+    n_: NDArray[bool] = np.array(n)
+    n_: NDArray[bool] = np.insert(n_, len(x), False)
+    n_: NDArray[bool] = np.insert(n_, 0, False)
     r_start: list[int] = []
     r_end: list[int] = []
     r: list[int] = []
@@ -152,14 +152,14 @@ def r_detection_u_net(data: NDArray[float], n: NDArray[np.bool_]) -> list[int]:
     return r
 
 
-def u_net_r_peak(x: NDArray[np.bool_]) -> list[int]:
+def u_net_r_peak(x: NDArray[bool]) -> list[int]:
     """获取心拍"""
 
-    x_: NDArray[np.bool_] = np.array(x)
-    x_: NDArray[np.bool_] = np.insert(x_, len(x), False)
-    x_: NDArray[np.bool_] = np.insert(x_, 0, False)
+    x_: NDArray[bool] = np.array(x)
+    x_: NDArray[bool] = np.insert(x_, len(x), False)
+    x_: NDArray[bool] = np.insert(x_, 0, False)
 
-    y: NDArray[np.bool_] = np.zeros_like(x)
+    y: NDArray[bool] = np.zeros_like(x)
     for i in range(len(x)):
         idx_: int = i + 1
         if x_[idx_] == 1 and (x_[idx_ - 1] == 1 or x_[idx_ + 1] == 1):
@@ -202,10 +202,10 @@ def get_24h_beats(
             now_s: int = cur_s + len_u_net
         else:
             break
-        p: NDArray[np.bool_]
-        n: NDArray[np.bool_]
-        t: NDArray[np.bool_]
-        r: NDArray[np.bool_]
+        p: NDArray[bool]
+        n: NDArray[bool]
+        t: NDArray[bool]
+        r: NDArray[bool]
         p, n, t, r = u_net_peak(data[cur_s:now_s], model=u_net)
 
         beat_list: list[int] = u_net_r_peak(n)
@@ -329,31 +329,30 @@ def classification_beats(
     return beats, label_cnt
 
 
-def get_lf_hf(rr_intervals, rr_interval_times):
-    resampling_period = 0.5
+def get_lf_hf(
+    rr_intervals: NDArray[float], rr_interval_times: NDArray[float]
+) -> tuple[int, float]:
+    resampling_period: float = 0.5
     interpolated_rr_intervals = interp1d(rr_interval_times, rr_intervals, kind="cubic")
     # fft conversion
-    start_time = interpolated_rr_intervals.x[0]
-    end_time = interpolated_rr_intervals.x[-1]
-    fixed_times = np.arange(start_time, end_time, resampling_period)
-    num_samples = fixed_times.shape[0]
+    start_time: float = interpolated_rr_intervals.x[0]
+    end_time: float = interpolated_rr_intervals.x[-1]
+    fixed_times: NDArray[float] = np.arange(start_time, end_time, resampling_period)
+    num_samples: int = fixed_times.shape[0]
     resampled_rr_intervals = interpolated_rr_intervals(fixed_times)
-    frequencies = np.fft.fftfreq(num_samples, d=resampling_period)
-    non_negative_frequency_index = frequencies >= 0
+    frequencies: NDArray[float] = np.fft.fftfreq(num_samples, d=resampling_period)
+    non_negative_frequency_index: NDArray[bool] = frequencies >= 0
 
     frequencies = frequencies[non_negative_frequency_index]
-    fft_converted = np.fft.fft(resampled_rr_intervals)[non_negative_frequency_index]
-    amplitudes = np.abs(fft_converted)
-    powers = amplitudes**2
+    fft_converted: NDArray[np.complex128] = np.fft.fft(resampled_rr_intervals)[
+        non_negative_frequency_index
+    ]
+    amplitudes: NDArray[float] = np.abs(fft_converted)
+    powers: NDArray[float] = amplitudes**2
 
-    lf_hf_configuration = {
-        "minimum_frequency": 0.05,
-        "boundary_frequency": 0.15,
-        "maximum_frequency": 0.4,
-    }
-    minimum_frequency = lf_hf_configuration["minimum_frequency"]
-    boundary_frequency = lf_hf_configuration["boundary_frequency"]
-    maximum_frequency = lf_hf_configuration["maximum_frequency"]
+    minimum_frequency = 0.05
+    boundary_frequency = 0.15
+    maximum_frequency = 0.4
 
     try:
         start_index = np.where(frequencies >= minimum_frequency)[0][0]
