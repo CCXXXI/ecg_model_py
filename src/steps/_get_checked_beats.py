@@ -8,8 +8,6 @@ def get_checked_beats(beats: list[int], r_peaks: list[int]) -> list[Beat]:
     """补充心拍"""
     assert len(beats) == len(r_peaks), "提取出的心拍数量与 R 波数量不同"
 
-    beats: NDArray[int] = np.array(beats, dtype=int)
-    r_peaks: NDArray[int] = np.array(r_peaks, dtype=int)
     checked_beats: list[Beat] = [
         Beat(position=beats[0], r_peak=r_peaks[0], is_new=False)
     ]
