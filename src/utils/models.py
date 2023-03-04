@@ -9,7 +9,7 @@ res_net: torch.nn.Module
 
 def load_models(path: str) -> None:
     global u_net
-    u_net = torch.load(path + "240HZ_t+c_v2_best.pt", map_location=device)
+    u_net = torch.jit.load(path + "u_net.pt", map_location=device)
     u_net.eval()
 
     global res_net

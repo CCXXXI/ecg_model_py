@@ -4,14 +4,9 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from models import CBR_1D, Unet_1D
 from steps import get_report, get_checked_beats, get_labelled_beats, get_r_peaks
 from utils.data_types import Beat
 from utils.models import load_models
-
-# These classes must be imported, otherwise the model cannot be loaded.
-# noinspection PyStatementEffect
-CBR_1D, Unet_1D
 
 
 def infer(data: NDArray[float], ori_fs: int) -> tuple[dict[str, int], list[Beat], str]:
@@ -33,7 +28,7 @@ def infer(data: NDArray[float], ori_fs: int) -> tuple[dict[str, int], list[Beat]
 def main():
     input_path = "../assets/input/107_leadII_10min.txt"
 
-    load_models("../assets/")
+    load_models("../assets/models/")
 
     with torch.no_grad():
         label_cnt, labelled_beats, report = infer(np.loadtxt(input_path), 250)
