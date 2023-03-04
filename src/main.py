@@ -331,15 +331,7 @@ def classification_beats(
 
 def get_lf_hf(rr_intervals, rr_interval_times):
     resampling_period = 0.5
-    interpolation_method = "spline"
-    if interpolation_method == "spline":
-        interpolated_rr_intervals = interp1d(
-            rr_interval_times, rr_intervals, kind="cubic"
-        )
-    elif interpolation_method == "linear":
-        interpolated_rr_intervals = interp1d(rr_interval_times, rr_intervals)
-    else:
-        raise ValueError("interpolation_method must be either 'spline' or 'linear'")
+    interpolated_rr_intervals = interp1d(rr_interval_times, rr_intervals, kind="cubic")
     # fft conversion
     start_time = interpolated_rr_intervals.x[0]
     end_time = interpolated_rr_intervals.x[-1]
