@@ -18,7 +18,6 @@ from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 # noinspection PyStatementEffect
 CBR_1D, Unet_1D
 
-
 logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -114,18 +113,20 @@ def u_net_peak(
     return p, n, t, r
 
 
-def r_detection_u_net(data, n):
+def r_detection_u_net(
+    data: npt.NDArray[np.float64], n: npt.NDArray[np.bool_]
+) -> list[int | np.int64]:
     # 获取R波波峰
-    x = data.copy()
-    len_x = len(x)
-    n_ = np.array(n)
-    n_ = np.insert(n_, len_x, False)
-    n_ = np.insert(n_, 0, False)
-    r_start = []
-    r_end = []
-    r = []
+    x: npt.NDArray[np.float64] = data.copy()
+    len_x: int = len(x)
+    n_: npt.NDArray[np.bool_] = np.array(n)
+    n_: npt.NDArray[np.bool_] = np.insert(n_, len_x, False)
+    n_: npt.NDArray[np.bool_] = np.insert(n_, 0, False)
+    r_start: list[int] = []
+    r_end: list[int] = []
+    r: list[int | np.int64] = []
     for i in range(len_x):
-        idx_ = i + 1
+        idx_: int = i + 1
         if n_[idx_] == 1 and (n_[idx_ - 1] == 1 or n_[idx_ + 1] == 1):
             if n_[idx_ - 1] == 0:
                 r_start.append(i)
@@ -143,8 +144,8 @@ def r_detection_u_net(data, n):
             + x[min(i + 2, len_x - 1)]
         ) / 5
     for i in range(len(r_start)):
-        r_candidate = []
-        peak_candidate = []
+        r_candidate: list[int] = []
+        peak_candidate: list[np.float64] = []
 
         for idx in range(r_start[i], r_end[i]):
             if idx <= 0 or idx >= len_x - 1:
