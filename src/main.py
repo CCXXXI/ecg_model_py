@@ -9,10 +9,12 @@ import numpy.typing as npt
 import torch
 from scipy import integrate, signal
 from scipy.interpolate import interp1d
+from torch import Tensor
 from torch.nn.functional import softmax
 
 import models
 from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
+from models.resnet_cbam import ResNet
 
 # This must be imported, otherwise the model cannot be loaded.
 # noinspection PyStatementEffect
@@ -33,7 +35,7 @@ class Beat:
     label: str = ""
 
 
-def transform(sig: npt.NDArray[np.float64]) -> torch.Tensor:
+def transform(sig: npt.NDArray[np.float64]) -> Tensor:
     # 前置不可或缺的步骤
     sig: npt.NDArray[np.float64] = signal.resample(sig, 360)
 
@@ -92,12 +94,12 @@ def u_net_peak(
     x: npt.NDArray[np.float64] = signal.filtfilt(b, a, x)
     # 标准化
     x: npt.NDArray[np.float64] = (x - np.mean(x)) / np.std(x)
-    x_tensor: torch.Tensor = torch.tensor(x)
-    x_tensor: torch.Tensor = torch.unsqueeze(x_tensor, 0)
-    x_tensor: torch.Tensor = torch.unsqueeze(x_tensor, 0)
-    x_tensor: torch.Tensor = x_tensor.to(device)
+    x_tensor: Tensor = torch.tensor(x)
+    x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
+    x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
+    x_tensor: Tensor = x_tensor.to(device)
 
-    pred: torch.Tensor = model(x_tensor)
+    pred: Tensor = model(x_tensor)
     out_pred: npt.NDArray[np.int64] = (
         softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
     )
@@ -270,23 +272,23 @@ def check_beats(
 
 
 def classification_beats(
-    data,
-    beats,
-    resnet,
-    ori_fs,
-):
-    half_len = int(0.75 * fs)
+    data: npt.NDArray[np.float64],
+    beats: list[Beat],
+    resnet: ResNet,
+    ori_fs: int,
+) -> tuple[list[Beat], dict[str, int]]:
+    half_len: int = int(0.75 * fs)
 
     logging.info("重采样原始信号")
 
-    data = signal.resample(data, len(data) * fs // ori_fs)
-    data = bsw(data, band_hz=0.5)
+    data: npt.NDArray[np.float64] = signal.resample(data, len(data) * fs // ori_fs)
+    data: npt.NDArray[np.float64] = bsw(data, band_hz=0.5)
 
     logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
 
     logging.info("分类心拍")
 
-    labels = [
+    labels: list[str] = [
         "窦性心律",
         "房性早搏",
         "心房扑动",
@@ -298,34 +300,37 @@ def classification_beats(
         "房室传导阻滞",
         "噪声",
     ]
-    label_cnt = {label: 0 for label in labels}
+    label_cnt: dict[str, int] = {label: 0 for label in labels}
 
-    batch_size = 64
-    input_tensor = []
-    input_beats = []
+    batch_size: int = 64
+    input_tensor: list[Tensor] = []
+    input_beats: list[Beat] = []
 
+    beat: Beat
     for idx, beat in enumerate(beats):
         if beat.position < half_len or beat.position >= data.shape[0] - half_len:
             beat.label = ""
             continue
 
-        x = data[beat.position - half_len : beat.position + half_len]
-        x.astype(np.float32)
-        x = np.reshape(x, (1, half_len * 2))
-        x = (x - np.mean(x)) / np.std(x)
-        x = x.T
-        x = transform(x).unsqueeze(0).to(device)
-        input_tensor.append(x)
+        x: npt.NDArray[np.float64] = data[
+            beat.position - half_len : beat.position + half_len
+        ]
+        x: npt.NDArray[np.float64] = np.reshape(x, (1, half_len * 2))
+        x: npt.NDArray[np.float64] = (x - np.mean(x)) / np.std(x)
+        x: npt.NDArray[np.float64] = x.T
+        x_tensor: Tensor = transform(x).unsqueeze(0).to(device)
+        input_tensor.append(x_tensor)
         input_beats.append(beat)
 
         if len(input_tensor) % batch_size == 0 or idx == len(beats) - 1:
-            x = torch.vstack(input_tensor)
-            output = torch.softmax(resnet(x), dim=1).squeeze()
+            x_tensor = torch.vstack(input_tensor)
+            output: Tensor = torch.softmax(resnet(x_tensor), dim=1).squeeze()
 
             # 修改维度
-            y_pred = torch.argmax(output, dim=1, keepdim=False)
+            y_pred: Tensor = torch.argmax(output, dim=1, keepdim=False)
             for i, pred in enumerate(y_pred):
-                pred = pred.item()
+                pred: Tensor
+                pred: int = pred.item()
                 beat = input_beats[i]
                 label_cnt[labels[pred]] += 1
                 beat.label = labels[pred]
