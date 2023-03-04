@@ -8,8 +8,7 @@ from scipy import signal
 from torch import Tensor
 from torch.nn.functional import softmax
 
-from utils import models
-from utils.config import fs
+from utils import fs, load_model
 
 
 def _u_net_peak(
@@ -29,7 +28,7 @@ def _u_net_peak(
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
 
-    pred: Tensor = models.u_net(x_tensor)
+    pred: Tensor = load_model("u_net.pt")(x_tensor)
     out_pred: NDArray[int] = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
     out_pred: NDArray[int] = np.reshape(out_pred, len(x))
     output: NDArray[int] = _output_sliding_voting_v2(out_pred)

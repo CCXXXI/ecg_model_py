@@ -4,9 +4,7 @@ from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
 
-from utils import models
-from utils.config import fs
-from utils.data_types import Beat
+from utils import Beat, fs, load_model
 
 
 def _bsw(data: NDArray[float], band_hz: float) -> NDArray[float]:
@@ -72,7 +70,9 @@ def get_labelled_beats(
 
         if len(input_tensor) % batch_size == 0 or idx == len(beats) - 1:
             x_tensor = torch.vstack(input_tensor)
-            output: Tensor = torch.softmax(models.res_net(x_tensor), dim=1).squeeze()
+            output: Tensor = torch.softmax(
+                load_model("res_net.pt")(x_tensor), dim=1
+            ).squeeze()
 
             # 修改维度
             y_pred: Tensor = torch.argmax(output, dim=1, keepdim=False)
