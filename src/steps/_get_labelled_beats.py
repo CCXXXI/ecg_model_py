@@ -5,7 +5,7 @@ from scipy import signal
 from torch import Tensor
 
 from utils import models
-from utils.config import fs, device
+from utils.config import fs
 from utils.data_types import Beat
 
 
@@ -66,7 +66,7 @@ def get_labelled_beats(
         x: NDArray[float] = np.reshape(x, (1, half_len * 2))
         x: NDArray[float] = (x - np.mean(x)) / np.std(x)
         x: NDArray[float] = x.T
-        x_tensor: Tensor = _transform(x).unsqueeze(0).to(device)
+        x_tensor: Tensor = _transform(x).unsqueeze(0)
         input_tensor.append(x_tensor)
         input_beats.append(beat)
 

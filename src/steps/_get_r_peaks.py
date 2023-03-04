@@ -9,7 +9,7 @@ from torch import Tensor
 from torch.nn.functional import softmax
 
 from utils import models
-from utils.config import device, fs
+from utils.config import fs
 
 
 def _u_net_peak(
@@ -28,7 +28,6 @@ def _u_net_peak(
     x_tensor: Tensor = torch.tensor(x)
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
-    x_tensor: Tensor = x_tensor.to(device)
 
     pred: Tensor = models.u_net(x_tensor)
     out_pred: NDArray[int] = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
