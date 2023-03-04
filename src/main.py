@@ -84,7 +84,6 @@ def u_net_peak(
 ]:
     # 提取U-net波群信息
     x: npt.NDArray[np.float64] = data.copy()
-    len_x: int = len(x)
     wn1: float = 1 / fs
     b: npt.NDArray[np.float64]
     a: npt.NDArray[np.float64]
@@ -93,16 +92,16 @@ def u_net_peak(
     x: npt.NDArray[np.float64] = signal.filtfilt(b, a, x)
     # 标准化
     x: npt.NDArray[np.float64] = (x - np.mean(x)) / np.std(x)
-    x: torch.Tensor = torch.tensor(x)
-    x: torch.Tensor = torch.unsqueeze(x, 0)
-    x: torch.Tensor = torch.unsqueeze(x, 0)
-    x: torch.Tensor = x.to(device)
+    x_tensor: torch.Tensor = torch.tensor(x)
+    x_tensor: torch.Tensor = torch.unsqueeze(x_tensor, 0)
+    x_tensor: torch.Tensor = torch.unsqueeze(x_tensor, 0)
+    x_tensor: torch.Tensor = x_tensor.to(device)
 
-    pred: torch.Tensor = model(x)
+    pred: torch.Tensor = model(x_tensor)
     out_pred: npt.NDArray[np.int64] = (
         softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
     )
-    out_pred: npt.NDArray[np.int64] = np.reshape(out_pred, len_x)
+    out_pred: npt.NDArray[np.int64] = np.reshape(out_pred, len(x))
     output: npt.NDArray[np.int64] = output_sliding_voting_v2(out_pred)
 
     p: npt.NDArray[np.bool_] = output == 0  # P波
@@ -118,14 +117,13 @@ def r_detection_u_net(
 ) -> list[int | np.int64]:
     # 获取R波波峰
     x: npt.NDArray[np.float64] = data.copy()
-    len_x: int = len(x)
     n_: npt.NDArray[np.bool_] = np.array(n)
-    n_: npt.NDArray[np.bool_] = np.insert(n_, len_x, False)
+    n_: npt.NDArray[np.bool_] = np.insert(n_, len(x), False)
     n_: npt.NDArray[np.bool_] = np.insert(n_, 0, False)
     r_start: list[int] = []
     r_end: list[int] = []
     r: list[int | np.int64] = []
-    for i in range(len_x):
+    for i in range(len(x)):
         idx_: int = i + 1
         if n_[idx_] == 1 and (n_[idx_ - 1] == 1 or n_[idx_ + 1] == 1):
             if n_[idx_ - 1] == 0:
@@ -135,20 +133,20 @@ def r_detection_u_net(
 
     assert len(r_start) == len(r_end), "R 波起点和终点数目不同"
 
-    for i in range(len_x):
+    for i in range(len(x)):
         x[i] = (
             x[max(i - 2, 0)]
             + x[max(i - 1, 0)]
             + x[i]
-            + x[min(i + 1, len_x - 1)]
-            + x[min(i + 2, len_x - 1)]
+            + x[min(i + 1, len(x) - 1)]
+            + x[min(i + 2, len(x) - 1)]
         ) / 5
     for i in range(len(r_start)):
         r_candidate: list[int] = []
         peak_candidate: list[np.float64] = []
 
         for idx in range(r_start[i], r_end[i]):
-            if idx <= 0 or idx >= len_x - 1:
+            if idx <= 0 or idx >= len(x) - 1:
                 continue
 
             if x[idx] >= x[idx - 1] and x[idx] >= x[idx + 1]:
