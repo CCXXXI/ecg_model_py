@@ -378,8 +378,8 @@ def get_lf_hf(
     return lf_integrated, hf_integrated
 
 
-def sample_to_time(position):
-    total_seconds = position / fs
+def sample_to_time(position: int) -> tuple[int, int, int]:
+    total_seconds: float = position / fs
     h = int(total_seconds // 3600)
     m = int((total_seconds % 3600) // 60)
     s = int((total_seconds % 3600 % 60))
