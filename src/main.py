@@ -159,33 +159,32 @@ def r_detection_u_net(
     return r
 
 
-def u_net_r_peak(x):
-    # 获取心拍
+def u_net_r_peak(x: npt.NDArray[np.bool_]) -> list[int]:
+    """获取心拍"""
 
-    len_x = len(x)
-    x_ = np.array(x)
-    x_ = np.insert(x_, len_x, False)
-    x_ = np.insert(x_, 0, False)
+    x_: npt.NDArray[np.bool_] = np.array(x)
+    x_: npt.NDArray[np.bool_] = np.insert(x_, len(x), False)
+    x_: npt.NDArray[np.bool_] = np.insert(x_, 0, False)
 
-    y = np.zeros_like(x)
-    for i in range(len_x):
-        idx_ = i + 1
+    y: npt.NDArray[np.bool_] = np.zeros_like(x)
+    for i in range(len(x)):
+        idx_: int = i + 1
         if x_[idx_] == 1 and (x_[idx_ - 1] == 1 or x_[idx_ + 1] == 1):
             if x_[idx_ - 1] == 0 or x_[idx_ + 1] == 0:
                 y[i] = 1
             else:
                 y[i] = 0
 
-    start = 0
-    flag = 0
-    r_list = []
-    for i in range(len_x):
+    start: int = 0
+    flag: int = 0
+    r_list: list[int] = []
+    for i in range(len(x)):
         if y[i] == 1 and flag == 0:
             flag = 1
             start = i
         elif y[i] == 1 and flag == 1:
             flag = 0
-            end = i
+            end: int = i
 
             r_list.append(start + math.floor((end - start) / 2))
     return r_list
