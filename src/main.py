@@ -77,30 +77,39 @@ def output_sliding_voting_v2(
 def u_net_peak(
     data: npt.NDArray[np.float64],
     model: Unet_1D,
-):
+) -> tuple[
+    npt.NDArray[np.bool],
+    npt.NDArray[np.bool],
+    npt.NDArray[np.bool],
+    npt.NDArray[np.bool],
+]:
     # 提取U-net波群信息
-    x = data.copy()
-    len_x = len(x)
-    wn1 = 1 / fs
+    x: npt.NDArray[np.float64] = data.copy()
+    len_x: int = len(x)
+    wn1: float = 1 / fs
+    b: npt.NDArray[np.float64]
+    a: npt.NDArray[np.float64]
     # noinspection PyTupleAssignmentBalance
     b, a = signal.butter(1, wn1, btype="high")
-    x = signal.filtfilt(b, a, x)
+    x: npt.NDArray[np.float64] = signal.filtfilt(b, a, x)
     # 标准化
-    x = (x - np.mean(x)) / np.std(x)
-    x = torch.tensor(x)
-    x = torch.unsqueeze(x, 0)
-    x = torch.unsqueeze(x, 0)
-    x = x.to(device)
+    x: npt.NDArray[np.float64] = (x - np.mean(x)) / np.std(x)
+    x: torch.Tensor = torch.tensor(x)
+    x: torch.Tensor = torch.unsqueeze(x, 0)
+    x: torch.Tensor = torch.unsqueeze(x, 0)
+    x: torch.Tensor = x.to(device)
 
-    pred = model(x)
-    out_pred = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
-    out_pred = np.reshape(out_pred, len_x)
-    output = output_sliding_voting_v2(out_pred)
+    pred: torch.Tensor = model(x)
+    out_pred: npt.NDArray[np.int64] = (
+        softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
+    )
+    out_pred: npt.NDArray[np.int64] = np.reshape(out_pred, len_x)
+    output: npt.NDArray[np.int64] = output_sliding_voting_v2(out_pred)
 
-    p = output == 0  # P波
-    n = output == 1  # QRS
-    t = output == 2  # t波
-    r = output == 3  # 其他
+    p: npt.NDArray[np.bool] = output == 0  # P波
+    n: npt.NDArray[np.bool] = output == 1  # QRS
+    t: npt.NDArray[np.bool] = output == 2  # t波
+    r: npt.NDArray[np.bool] = output == 3  # 其他
 
     return p, n, t, r
 
