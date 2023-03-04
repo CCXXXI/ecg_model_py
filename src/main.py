@@ -5,8 +5,8 @@ from pprint import pp
 from typing import Final
 
 import numpy as np
-import numpy.typing as npt
 import torch
+from numpy.typing import NDArray
 from scipy import integrate, signal
 from scipy.interpolate import interp1d
 from torch import Tensor
@@ -35,33 +35,33 @@ class Beat:
     label: str = ""
 
 
-def transform(sig: npt.NDArray[np.float64]) -> Tensor:
+def transform(sig: NDArray[np.float64]) -> Tensor:
     # 前置不可或缺的步骤
-    sig: npt.NDArray[np.float64] = signal.resample(sig, 360)
+    sig: NDArray[np.float64] = signal.resample(sig, 360)
 
     # 后置不可或缺的步骤
-    sig: npt.NDArray[np.float64] = sig.transpose()
+    sig: NDArray[np.float64] = sig.transpose()
     return torch.tensor(sig.copy(), dtype=torch.float)
 
 
-def bsw(data: npt.NDArray[np.float64], band_hz: float) -> npt.NDArray[np.float64]:
+def bsw(data: NDArray[np.float64], band_hz: float) -> NDArray[np.float64]:
     wn1: float = 2 * band_hz / fs  # 只截取5hz以上的数据
-    b: npt.NDArray[np.float64]
-    a: npt.NDArray[np.float64]
+    b: NDArray[np.float64]
+    a: NDArray[np.float64]
     # noinspection PyTupleAssignmentBalance
     b, a = signal.butter(1, wn1, btype="high")
     return signal.filtfilt(b, a, data)
 
 
 def output_sliding_voting_v2(
-    ori_output: npt.NDArray[np.int64],
-) -> npt.NDArray[np.int64]:
+    ori_output: NDArray[np.int64],
+) -> NDArray[np.int64]:
     window: Final[int] = 9
 
-    output: npt.NDArray[np.int64] = np.array(ori_output)
+    output: NDArray[np.int64] = np.array(ori_output)
     n: int = len(output)
     half_window: int = int(window / 2)
-    cnt: npt.NDArray[np.int32] = np.zeros((4,), dtype=np.int32)
+    cnt: NDArray[np.int32] = np.zeros((4,), dtype=np.int32)
     l_index: int = 0
     r_index: int = -1
     for i in range(n):
@@ -76,52 +76,45 @@ def output_sliding_voting_v2(
 
 
 def u_net_peak(
-    data: npt.NDArray[np.float64],
+    data: NDArray[np.float64],
     model: Unet_1D,
-) -> tuple[
-    npt.NDArray[np.bool_],
-    npt.NDArray[np.bool_],
-    npt.NDArray[np.bool_],
-    npt.NDArray[np.bool_],
-]:
+) -> tuple[NDArray[np.bool_], NDArray[np.bool_], NDArray[np.bool_], NDArray[np.bool_]]:
     # 提取U-net波群信息
-    x: npt.NDArray[np.float64] = data.copy()
+    x: NDArray[np.float64] = data.copy()
     wn1: float = 1 / fs
-    b: npt.NDArray[np.float64]
-    a: npt.NDArray[np.float64]
+    b: NDArray[np.float64]
+    a: NDArray[np.float64]
     # noinspection PyTupleAssignmentBalance
     b, a = signal.butter(1, wn1, btype="high")
-    x: npt.NDArray[np.float64] = signal.filtfilt(b, a, x)
+    x: NDArray[np.float64] = signal.filtfilt(b, a, x)
     # 标准化
-    x: npt.NDArray[np.float64] = (x - np.mean(x)) / np.std(x)
+    x: NDArray[np.float64] = (x - np.mean(x)) / np.std(x)
     x_tensor: Tensor = torch.tensor(x)
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
     x_tensor: Tensor = x_tensor.to(device)
 
     pred: Tensor = model(x_tensor)
-    out_pred: npt.NDArray[np.int64] = (
-        softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
-    )
-    out_pred: npt.NDArray[np.int64] = np.reshape(out_pred, len(x))
-    output: npt.NDArray[np.int64] = output_sliding_voting_v2(out_pred)
+    out_pred: NDArray[np.int64] = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
+    out_pred: NDArray[np.int64] = np.reshape(out_pred, len(x))
+    output: NDArray[np.int64] = output_sliding_voting_v2(out_pred)
 
-    p: npt.NDArray[np.bool_] = output == 0  # P波
-    n: npt.NDArray[np.bool_] = output == 1  # QRS
-    t: npt.NDArray[np.bool_] = output == 2  # t波
-    r: npt.NDArray[np.bool_] = output == 3  # 其他
+    p: NDArray[np.bool_] = output == 0  # P波
+    n: NDArray[np.bool_] = output == 1  # QRS
+    t: NDArray[np.bool_] = output == 2  # t波
+    r: NDArray[np.bool_] = output == 3  # 其他
 
     return p, n, t, r
 
 
 def r_detection_u_net(
-    data: npt.NDArray[np.float64], n: npt.NDArray[np.bool_]
+    data: NDArray[np.float64], n: NDArray[np.bool_]
 ) -> list[int | np.int64]:
     # 获取R波波峰
-    x: npt.NDArray[np.float64] = data.copy()
-    n_: npt.NDArray[np.bool_] = np.array(n)
-    n_: npt.NDArray[np.bool_] = np.insert(n_, len(x), False)
-    n_: npt.NDArray[np.bool_] = np.insert(n_, 0, False)
+    x: NDArray[np.float64] = data.copy()
+    n_: NDArray[np.bool_] = np.array(n)
+    n_: NDArray[np.bool_] = np.insert(n_, len(x), False)
+    n_: NDArray[np.bool_] = np.insert(n_, 0, False)
     r_start: list[int] = []
     r_end: list[int] = []
     r: list[int | np.int64] = []
@@ -161,14 +154,14 @@ def r_detection_u_net(
     return r
 
 
-def u_net_r_peak(x: npt.NDArray[np.bool_]) -> list[int]:
+def u_net_r_peak(x: NDArray[np.bool_]) -> list[int]:
     """获取心拍"""
 
-    x_: npt.NDArray[np.bool_] = np.array(x)
-    x_: npt.NDArray[np.bool_] = np.insert(x_, len(x), False)
-    x_: npt.NDArray[np.bool_] = np.insert(x_, 0, False)
+    x_: NDArray[np.bool_] = np.array(x)
+    x_: NDArray[np.bool_] = np.insert(x_, len(x), False)
+    x_: NDArray[np.bool_] = np.insert(x_, 0, False)
 
-    y: npt.NDArray[np.bool_] = np.zeros_like(x)
+    y: NDArray[np.bool_] = np.zeros_like(x)
     for i in range(len(x)):
         idx_: int = i + 1
         if x_[idx_] == 1 and (x_[idx_ - 1] == 1 or x_[idx_ + 1] == 1):
@@ -193,11 +186,11 @@ def u_net_r_peak(x: npt.NDArray[np.bool_]) -> list[int]:
 
 
 def get_24h_beats(
-    data: npt.NDArray[np.float64], u_net: Unet_1D, ori_fs: int
+    data: NDArray[np.float64], u_net: Unet_1D, ori_fs: int
 ) -> tuple[list[np.int32], list[np.int64]]:
     """提取R波和心拍"""
     logging.info("重采样原始信号")
-    data: npt.NDArray[np.float64] = signal.resample(data, len(data) * fs // ori_fs)
+    data: NDArray[np.float64] = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net: int = 10 * 60 * fs
     logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
 
@@ -211,17 +204,17 @@ def get_24h_beats(
             now_s: int = cur_s + len_u_net
         else:
             break
-        p: npt.NDArray[np.bool_]
-        n: npt.NDArray[np.bool_]
-        t: npt.NDArray[np.bool_]
-        r: npt.NDArray[np.bool_]
+        p: NDArray[np.bool_]
+        n: NDArray[np.bool_]
+        t: NDArray[np.bool_]
+        r: NDArray[np.bool_]
         p, n, t, r = u_net_peak(data[cur_s:now_s], model=u_net)
 
         beat_list: list[int] = u_net_r_peak(n)
         r_list: list[int | np.int64] = r_detection_u_net(data[cur_s:now_s], n)
         # 记录QRS波中点，以该点标识心拍     之后两边扩展
-        beat_list: npt.NDArray[np.int32] = np.array(beat_list)
-        r_list: npt.NDArray[np.int64] = np.array(r_list)
+        beat_list: NDArray[np.int32] = np.array(beat_list)
+        r_list: NDArray[np.int64] = np.array(r_list)
 
         append_start: int = int(0.5 * 60 * fs)
         append_end: int = int(9.5 * 60 * fs)
@@ -241,15 +234,15 @@ def get_24h_beats(
 
 
 def check_beats(
-    beats: npt.NDArray[np.int32], r_peaks: npt.NDArray[np.int64]
+    beats: NDArray[np.int32], r_peaks: NDArray[np.int64]
 ) -> tuple[int, list[Beat]]:
-    beats: npt.NDArray[np.int32] = np.array(beats, dtype=int)
-    r_peaks: npt.NDArray[np.int32] = np.array(r_peaks, dtype=int)
+    beats: NDArray[np.int32] = np.array(beats, dtype=int)
+    r_peaks: NDArray[np.int32] = np.array(r_peaks, dtype=int)
     checked_beats: list[Beat] = [
         Beat(position=beats[0], r_peak=r_peaks[0], is_new=False)
     ]
     limit: float = 2 * 1.5 * fs
-    beats_diff: npt.NDArray[np.int32] = np.diff(beats)
+    beats_diff: NDArray[np.int32] = np.diff(beats)
     add_num: int = 0
     for index, diff in enumerate(beats_diff):
         if diff >= limit:
@@ -272,7 +265,7 @@ def check_beats(
 
 
 def classification_beats(
-    data: npt.NDArray[np.float64],
+    data: NDArray[np.float64],
     beats: list[Beat],
     resnet: ResNet,
     ori_fs: int,
@@ -281,8 +274,8 @@ def classification_beats(
 
     logging.info("重采样原始信号")
 
-    data: npt.NDArray[np.float64] = signal.resample(data, len(data) * fs // ori_fs)
-    data: npt.NDArray[np.float64] = bsw(data, band_hz=0.5)
+    data: NDArray[np.float64] = signal.resample(data, len(data) * fs // ori_fs)
+    data: NDArray[np.float64] = bsw(data, band_hz=0.5)
 
     logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
 
@@ -312,12 +305,12 @@ def classification_beats(
             beat.label = ""
             continue
 
-        x: npt.NDArray[np.float64] = data[
+        x: NDArray[np.float64] = data[
             beat.position - half_len : beat.position + half_len
         ]
-        x: npt.NDArray[np.float64] = np.reshape(x, (1, half_len * 2))
-        x: npt.NDArray[np.float64] = (x - np.mean(x)) / np.std(x)
-        x: npt.NDArray[np.float64] = x.T
+        x: NDArray[np.float64] = np.reshape(x, (1, half_len * 2))
+        x: NDArray[np.float64] = (x - np.mean(x)) / np.std(x)
+        x: NDArray[np.float64] = x.T
         x_tensor: Tensor = transform(x).unsqueeze(0).to(device)
         input_tensor.append(x_tensor)
         input_beats.append(beat)
@@ -410,34 +403,34 @@ def sample_to_time(position):
 
 def analyze_beats(my_beats, output_path):
     """统计带有标签的 beats"""
-    n_diff = []
-    n_time = []
-    n_diff_flatten_with_r_peak = []
-    n_flag = False
-    n_continuous_beats = []
-    n_stop_beats = []
-    n_num = 0
-    rr = []
-    af_diff = []  # 房扑房颤
-    af_flag = False
-    af_continuous_beats = []
-    vf = []
+    n_diff: list[NDArray[np.int32]] = []
+    n_time: list[NDArray[np.float64]] = []
+    n_diff_flatten_with_r_peak: list[list[np.int32]] = []
+    n_flag: bool = False
+    n_continuous_beats: list[np.int32] = []
+    n_stop_beats: list[list[np.int32]] = []
+    n_num: int = 0
+    rr: list[np.int32] = []
+    af_diff: list[NDArray[np.int32]] = []  # 房扑房颤
+    af_flag: bool = False
+    af_continuous_beats: list[np.int32] = []
+    vf: list[list[np.int32]] = []
 
-    qrs_num = 0
-    apb = []
-    apb_single = []  # 单发房早-次数
-    apb_double = []  # 成对房早-次数
-    apb_double_rhythm = []  # 房早二联律-次数、持续时间
-    apb_triple_rhythm = []  # 房早三联律-次数、持续时间
-    apb_short_array = []  # 短阵房早-次数、持续时间
-    vpb = []
-    vpb_single = []  # 单发室早
-    vpb_double = []  # 成对室早
-    vpb_double_rhythm = []  # 室早二联律
-    vpb_triple_rhythm = []  # 室早三联律
-    vpb_short_array = []  # 短阵室早
-    iteration_num = 0
-    len_my_beats = len(my_beats)
+    qrs_num: int = 0
+    apb: list[int] = []
+    apb_single: list[int] = []  # 单发房早-次数
+    apb_double: list[int] = []  # 成对房早-次数
+    apb_double_rhythm: list[int] = []  # 房早二联律-次数、持续时间
+    apb_triple_rhythm: list[int] = []  # 房早三联律-次数、持续时间
+    apb_short_array: list[list[int]] = []  # 短阵房早-次数、持续时间
+    vpb: list[int] = []
+    vpb_single: list[int] = []  # 单发室早
+    vpb_double: list[int] = []  # 成对室早
+    vpb_double_rhythm: list[int] = []  # 室早二联律
+    vpb_triple_rhythm: list[int] = []  # 室早三联律
+    vpb_short_array: list[list[int]] = []  # 短阵室早
+    iteration_num: int = 0
+    len_my_beats: int = len(my_beats)
 
     for index, my_beat in enumerate(my_beats):
         if my_beat.label == "":
@@ -757,8 +750,8 @@ def analyze_beats(my_beats, output_path):
         if not len(vf) == 0:
             display_number += 1
             f_out.write("{}、出现室扑室颤，如下：\n".format(display_number))
-            for vf in vf:
-                vf_h, vf_m, vf_s = sample_to_time(vf[0])
+            for v in vf:
+                vf_h, vf_m, vf_s = sample_to_time(v[0])
                 f_out.write(
                     "在{}h-{}m-{}s发生室扑室颤，持续时长{}s\n".format(vf_h, vf_m, vf_s, vf[1])
                 )
