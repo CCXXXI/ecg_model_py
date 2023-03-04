@@ -26,12 +26,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 fs: Final[int] = 240
 
-u_net_path: str
+
+u_net: Unet_1D
 
 
-def set_models_path(path: str) -> None:
-    global u_net_path
-    u_net_path = path + "240HZ_t+c_v2_best.pt"
+def load_models(path: str) -> None:
+    global u_net
+    u_net = torch.load(path + "240HZ_t+c_v2_best.pt", map_location=device)
+    u_net.eval()
 
 
 @dataclass
@@ -99,9 +101,6 @@ def u_net_peak(
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
     x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
     x_tensor: Tensor = x_tensor.to(device)
-
-    u_net: Unet_1D = torch.load(u_net_path, map_location=device)
-    u_net.eval()
 
     pred: Tensor = u_net(x_tensor)
     out_pred: NDArray[int] = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
@@ -850,7 +849,7 @@ def infer(data, ori_fs):
 
 
 def main():
-    set_models_path("../assets/")
+    load_models("../assets/")
 
     with torch.no_grad():
         label_cnt, labelled_beats = infer(np.loadtxt("../assets/input.txt"), 250)
