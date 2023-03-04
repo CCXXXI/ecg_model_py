@@ -238,13 +238,17 @@ def get_24h_beats(
     return beats, r_peaks
 
 
-def check_beats(beats, r_peaks):
-    beats = np.array(beats, dtype=int)
-    r_peaks = np.array(r_peaks, dtype=int)
-    checked_beats = [Beat(position=beats[0], r_peak=r_peaks[0], is_new=False)]
-    limit = 2 * 1.5 * fs
-    beats_diff = np.diff(beats)
-    add_num = 0
+def check_beats(
+    beats: npt.NDArray[np.int32], r_peaks: npt.NDArray[np.int64]
+) -> tuple[int, list[Beat]]:
+    beats: npt.NDArray[np.int32] = np.array(beats, dtype=int)
+    r_peaks: npt.NDArray[np.int32] = np.array(r_peaks, dtype=int)
+    checked_beats: list[Beat] = [
+        Beat(position=beats[0], r_peak=r_peaks[0], is_new=False)
+    ]
+    limit: float = 2 * 1.5 * fs
+    beats_diff: npt.NDArray[np.int32] = np.diff(beats)
+    add_num: int = 0
     for index, diff in enumerate(beats_diff):
         if diff >= limit:
             start = beats[index]
