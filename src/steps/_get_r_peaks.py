@@ -16,23 +16,23 @@ def _u_net_peak(
 ) -> tuple[NDArray[bool], NDArray[bool], NDArray[bool], NDArray[bool]]:
     # 提取U-net波群信息
     x: NDArray[float] = data.copy()
-    wn1: float = 1 / fs
+    wn1 = 1 / fs
     b: NDArray[float]
     a: NDArray[float]
     # noinspection PyTupleAssignmentBalance
     b, a = signal.butter(1, wn1, btype="high")
-    x: NDArray[float] = signal.filtfilt(b, a, x)
+    x = signal.filtfilt(b, a, x)
     # 标准化
-    x: NDArray[float] = (x - np.mean(x)) / np.std(x)
+    x = (x - np.mean(x)) / np.std(x)
     x_tensor: Tensor = torch.tensor(x)
-    x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
-    x_tensor: Tensor = torch.unsqueeze(x_tensor, 0)
+    x_tensor = torch.unsqueeze(x_tensor, 0)
+    x_tensor = torch.unsqueeze(x_tensor, 0)
 
     model = load_model("u_net.pt")
     pred: Tensor = model(x_tensor)
     out_pred: NDArray[int] = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
-    out_pred: NDArray[int] = np.reshape(out_pred, len(x))
-    output: NDArray[int] = _output_sliding_voting_v2(out_pred)
+    out_pred = np.reshape(out_pred, len(x))
+    output = _output_sliding_voting_v2(out_pred)
 
     p: NDArray[bool] = output == 0  # P波
     n: NDArray[bool] = output == 1  # QRS
@@ -46,28 +46,28 @@ def _u_net_r_peak(x: NDArray[bool]) -> list[int]:
     """获取心拍"""
 
     x_: NDArray[bool] = np.array(x)
-    x_: NDArray[bool] = np.insert(x_, len(x), False)
-    x_: NDArray[bool] = np.insert(x_, 0, False)
+    x_ = np.insert(x_, len(x), False)
+    x_ = np.insert(x_, 0, False)
 
     y: NDArray[bool] = np.zeros_like(x)
     for i in range(len(x)):
-        idx_: int = i + 1
+        idx_ = i + 1
         if x_[idx_] == 1 and (x_[idx_ - 1] == 1 or x_[idx_ + 1] == 1):
             if x_[idx_ - 1] == 0 or x_[idx_ + 1] == 0:
                 y[i] = 1
             else:
                 y[i] = 0
 
-    start: int = 0
-    flag: int = 0
+    start = 0
+    flag = False
     r_list: list[int] = []
     for i in range(len(x)):
-        if y[i] == 1 and flag == 0:
-            flag = 1
+        if y[i] == 1 and not flag:
+            flag = True
             start = i
-        elif y[i] == 1 and flag == 1:
-            flag = 0
-            end: int = i
+        elif y[i] == 1 and flag:
+            flag = False
+            end = i
 
             r_list.append(start + math.floor((end - start) / 2))
     return r_list
@@ -77,13 +77,13 @@ def _r_detection_u_net(data: NDArray[float], n: NDArray[bool]) -> list[int]:
     # 获取R波波峰
     x: NDArray[float] = data.copy()
     n_: NDArray[bool] = np.array(n)
-    n_: NDArray[bool] = np.insert(n_, len(x), False)
-    n_: NDArray[bool] = np.insert(n_, 0, False)
+    n_ = np.insert(n_, len(x), False)
+    n_ = np.insert(n_, 0, False)
     r_start: list[int] = []
     r_end: list[int] = []
     r: list[int] = []
     for i in range(len(x)):
-        idx_: int = i + 1
+        idx_ = i + 1
         if n_[idx_] == 1 and (n_[idx_ - 1] == 1 or n_[idx_ + 1] == 1):
             if n_[idx_ - 1] == 0:
                 r_start.append(i)
@@ -124,11 +124,11 @@ def _output_sliding_voting_v2(
     window: Final[int] = 9
 
     output: NDArray[int] = np.array(ori_output)
-    n: int = len(output)
-    half_window: int = int(window / 2)
+    n = len(output)
+    half_window = int(window / 2)
     cnt: NDArray[int] = np.zeros((4,), dtype=int)
-    l_index: int = 0
-    r_index: int = -1
+    l_index = 0
+    r_index = -1
     for i in range(n):
         if r_index - l_index + 1 == window and half_window < i < n - half_window:
             cnt[ori_output[l_index]] -= 1
@@ -143,12 +143,12 @@ def _output_sliding_voting_v2(
 def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]]:
     """提取R波切分心拍"""
     data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
-    len_u_net: int = 10 * 60 * fs
+    len_u_net = 10 * 60 * fs
 
     len_data: int = data.shape[0]
     beats: list[int] = []
     r_peaks: list[int] = []
-    cur_s: int = 0
+    cur_s = 0
     while cur_s < len_data:
         if cur_s + len_u_net <= len_data:
             now_s: int = cur_s + len_u_net
@@ -166,8 +166,8 @@ def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]
         beat_list: NDArray[int] = np.array(beat_list)
         r_list: NDArray[int] = np.array(r_list)
 
-        append_start: int = int(0.5 * 60 * fs)
-        append_end: int = int(9.5 * 60 * fs)
+        append_start = int(0.5 * 60 * fs)
+        append_end = int(9.5 * 60 * fs)
         if cur_s == 0:
             append_start = 0
 

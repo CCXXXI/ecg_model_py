@@ -13,9 +13,9 @@ def get_checked_beats(beats: list[int], r_peaks: list[int]) -> list[Beat]:
     checked_beats: list[Beat] = [
         Beat(position=beats[0], r_peak=r_peaks[0], is_new=False)
     ]
-    limit: float = 2 * 1.5 * fs
+    limit = 2 * 1.5 * fs
     beats_diff: NDArray[int] = np.diff(beats)
-    num: int = 0
+    num = 0
     for index, diff in enumerate(beats_diff):
         if diff >= limit:
             start = beats[index]

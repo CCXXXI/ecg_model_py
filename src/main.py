@@ -7,21 +7,15 @@ from utils import Beat, set_models_path
 
 
 def infer(data: NDArray[float], ori_fs: int) -> tuple[list[Beat], str]:
-    beats: list[int]
-    r_peaks: list[int]
     beats, r_peaks = get_r_peaks(data, ori_fs)
-
-    checked_beats: list[Beat] = get_checked_beats(beats, r_peaks)
-
-    labelled_beats: list[Beat]
+    checked_beats = get_checked_beats(beats, r_peaks)
     labelled_beats = get_labelled_beats(data, checked_beats, ori_fs)
-
-    report: str = get_report(labelled_beats)
+    report = get_report(labelled_beats)
 
     return labelled_beats, report
 
 
-def main():
+def main() -> None:
     input_path = "../assets/input/107_leadII_10min.txt"
 
     set_models_path("../assets/models/")

@@ -9,7 +9,7 @@ from utils import Beat, fs
 
 
 def _sample_to_time(position: int) -> tuple[int, int, int]:
-    total_seconds: float = position / fs
+    total_seconds = position / fs
     h = int(total_seconds // 3600)
     m = int((total_seconds % 3600) // 60)
     s = int((total_seconds % 3600 % 60))
@@ -19,7 +19,7 @@ def _sample_to_time(position: int) -> tuple[int, int, int]:
 def _get_lf_hf(
     rr_intervals: NDArray[float], rr_interval_times: NDArray[float]
 ) -> tuple[int, float]:
-    resampling_period: float = 0.5
+    resampling_period = 0.5
     interpolated_rr_intervals = interp1d(rr_interval_times, rr_intervals, kind="cubic")
     # fft conversion
     start_time: float = interpolated_rr_intervals.x[0]

@@ -8,7 +8,7 @@ from utils import Beat, fs, load_model
 
 
 def _bsw(data: NDArray[float], band_hz: float) -> NDArray[float]:
-    wn1: float = 2 * band_hz / fs  # 只截取5hz以上的数据
+    wn1 = 2 * band_hz / fs  # 只截取5hz以上的数据
     b: NDArray[float]
     a: NDArray[float]
     # noinspection PyTupleAssignmentBalance
@@ -17,11 +17,7 @@ def _bsw(data: NDArray[float], band_hz: float) -> NDArray[float]:
 
 
 def _transform(sig: NDArray[float]) -> Tensor:
-    # 前置不可或缺的步骤
-    sig: NDArray[float] = signal.resample(sig, 360)
-
-    # 后置不可或缺的步骤
-    sig: NDArray[float] = sig.transpose()
+    sig = signal.resample(sig, 360).T
     return torch.tensor(sig.copy(), dtype=torch.float)
 
 
@@ -29,12 +25,12 @@ def get_labelled_beats(
     data: NDArray[float], beats: list[Beat], ori_fs: int
 ) -> list[Beat]:
     """进行预测，获取标签"""
-    half_len: int = int(0.75 * fs)
+    half_len = int(0.75 * fs)
 
-    data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
-    data: NDArray[float] = _bsw(data, band_hz=0.5)
+    data = signal.resample(data, len(data) * fs // ori_fs)
+    data = _bsw(data, band_hz=0.5)
 
-    labels: list[str] = [
+    labels = [
         "窦性心律",
         "房性早搏",
         "心房扑动",
@@ -47,20 +43,19 @@ def get_labelled_beats(
         "噪声",
     ]
 
-    batch_size: int = 64
+    batch_size = 64
     input_tensor: list[Tensor] = []
     input_beats: list[Beat] = []
 
-    beat: Beat
     for idx, beat in enumerate(beats):
         if beat.position < half_len or beat.position >= data.shape[0] - half_len:
             beat.label = ""
             continue
 
         x: NDArray[float] = data[beat.position - half_len : beat.position + half_len]
-        x: NDArray[float] = np.reshape(x, (1, half_len * 2))
-        x: NDArray[float] = (x - np.mean(x)) / np.std(x)
-        x: NDArray[float] = x.T
+        x = np.reshape(x, (1, half_len * 2))
+        x = (x - np.mean(x)) / np.std(x)
+        x = x.T
         x_tensor: Tensor = _transform(x).unsqueeze(0)
         input_tensor.append(x_tensor)
         input_beats.append(beat)
@@ -74,9 +69,9 @@ def get_labelled_beats(
             y_pred: Tensor = torch.argmax(output, dim=1, keepdim=False)
             for i, pred in enumerate(y_pred):
                 pred: Tensor
-                pred: int = pred.item()
+                pred_i: int = pred.item()
                 beat = input_beats[i]
-                beat.label = labels[pred]
+                beat.label = labels[pred_i]
             input_tensor = []
             input_beats = []
 
