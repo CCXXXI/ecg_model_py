@@ -48,7 +48,7 @@ class BasicBlock(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
 
         if use_cbam:
-            self.cbam = CBAM(planes, 16)
+            self.cbam = CBAM(planes)
 
     def forward(self, x):
         residual = x
@@ -62,7 +62,7 @@ class BasicBlock(nn.Module):
 
         if self.downsample is not None:
             residual = self.downsample(x)
-        if not self.cbam is None:
+        if self.cbam is not None:
             out = self.cbam(out)
         out += residual
         out = self.relu(out)
@@ -160,8 +160,7 @@ class ResNet(nn.Module):
                 nn.BatchNorm1d(planes * block.expansion),
             )
 
-        layers = []
-        layers.append(
+        layers = [
             block(
                 self.inplanes,
                 planes,
@@ -170,7 +169,7 @@ class ResNet(nn.Module):
                 use_cbam=att_type == "CBAM",
                 dropout_rate=dropout_rate,
             )
-        )
+        ]
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(
@@ -202,12 +201,8 @@ class ResNet(nn.Module):
         return x
 
 
-def resnet34_cbam_ch1(pretrained=False, **kwargs):
-    """Constructs a ResNet-34-CBAM model with 1 channels.
-
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
+def resnet34_cbam_ch1(**kwargs):
+    """Constructs a ResNet-34-CBAM model with 1 channel."""
     model = ResNet(
         BasicBlock, [3, 4, 6, 3], att_type="CBAM", initial_channel=1, **kwargs
     )

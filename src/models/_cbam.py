@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from torch.nn.functional import max_pool1d, avg_pool1d
 
 
 class BasicConv(nn.Module):
@@ -44,12 +44,13 @@ class BasicConv(nn.Module):
 
 
 class Flatten(nn.Module):
-    def forward(self, x):
+    @staticmethod
+    def forward(x):
         return x.view(x.size(0), -1)
 
 
 class ChannelGate(nn.Module):
-    def __init__(self, gate_channels, reduction_ratio=16, pool_types=["avg", "max"]):
+    def __init__(self, gate_channels, reduction_ratio=16):
         super(ChannelGate, self).__init__()
         self.gate_channels = gate_channels
         self.mlp = nn.Sequential(
@@ -58,17 +59,19 @@ class ChannelGate(nn.Module):
             nn.ReLU(),
             nn.Linear(gate_channels // reduction_ratio, gate_channels),
         )
-        self.pool_types = pool_types
+        self.pool_types = ["avg", "max"]
 
     def forward(self, x):
         channel_att_sum = None
         for pool_type in self.pool_types:
             if pool_type == "avg":
-                avg_pool = F.avg_pool1d(x, x.size(2), stride=x.size(2))
+                avg_pool = avg_pool1d(x, x.size(2), stride=x.size(2))
                 channel_att_raw = self.mlp(avg_pool)
             elif pool_type == "max":
-                max_pool = F.max_pool1d(x, x.size(2), stride=x.size(2))
+                max_pool = max_pool1d(x, x.size(2), stride=x.size(2))
                 channel_att_raw = self.mlp(max_pool)
+            else:
+                assert False
 
             if channel_att_sum is None:
                 channel_att_sum = channel_att_raw
@@ -80,7 +83,8 @@ class ChannelGate(nn.Module):
 
 
 class ChannelPool(nn.Module):
-    def forward(self, x):
+    @staticmethod
+    def forward(x):
         return torch.cat(
             (torch.max(x, 1)[0].unsqueeze(1), torch.mean(x, 1).unsqueeze(1)), dim=1
         )
@@ -107,11 +111,10 @@ class CBAM(nn.Module):
         self,
         gate_channels,
         reduction_ratio=16,
-        pool_types=["avg", "max"],
         no_spatial=False,
     ):
         super(CBAM, self).__init__()
-        self.ChannelGate = ChannelGate(gate_channels, reduction_ratio, pool_types)
+        self.ChannelGate = ChannelGate(gate_channels, reduction_ratio)
         self.no_spatial = no_spatial
         if not no_spatial:
             self.SpatialGate = SpatialGate()
