@@ -26,10 +26,8 @@ def _transform(sig: NDArray[float]) -> Tensor:
 
 
 def get_labelled_beats(
-    data: NDArray[float],
-    beats: list[Beat],
-    ori_fs: int,
-) -> tuple[list[Beat], dict[str, int]]:
+    data: NDArray[float], beats: list[Beat], ori_fs: int
+) -> list[Beat]:
     """进行预测，获取标签"""
     half_len: int = int(0.75 * fs)
 
@@ -48,7 +46,6 @@ def get_labelled_beats(
         "房室传导阻滞",
         "噪声",
     ]
-    label_cnt: dict[str, int] = {label: 0 for label in labels}
 
     batch_size: int = 64
     input_tensor: list[Tensor] = []
@@ -79,9 +76,8 @@ def get_labelled_beats(
                 pred: Tensor
                 pred: int = pred.item()
                 beat = input_beats[i]
-                label_cnt[labels[pred]] += 1
                 beat.label = labels[pred]
             input_tensor = []
             input_beats = []
 
-    return beats, label_cnt
+    return beats
