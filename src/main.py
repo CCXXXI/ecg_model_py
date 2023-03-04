@@ -183,10 +183,11 @@ def u_net_r_peak(x: NDArray[bool]) -> list[int]:
     return r_list
 
 
-def get_24h_beats(
-    data: NDArray[float], u_net: Unet_1D, ori_fs: int
-) -> tuple[list[int], list[int]]:
-    """提取R波和心拍"""
+def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]]:
+    """提取R波切分心拍"""
+    u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
+    u_net.eval()
+
     logging.info("重采样原始信号")
     data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net: int = 10 * 60 * fs
@@ -806,18 +807,6 @@ def analyze_beats(beats: list[Beat]) -> str:
     return "".join(buffer)
 
 
-def get_r_peaks(data, ori_fs) -> tuple[list[int], list[int]]:
-    """提取R波切分心拍"""
-    u_net = torch.load("../assets/240HZ_t+c_v2_best.pt", map_location=device)
-    u_net.eval()
-
-    return get_24h_beats(
-        data,
-        u_net=u_net,
-        ori_fs=ori_fs,
-    )
-
-
 def get_checked_beats(beats, r_peaks):
     """补充心拍"""
     assert len(beats) == len(r_peaks), "提取出的心拍数量与 R 波数量不同"
@@ -849,7 +838,7 @@ def get_labels(data, checked_beats, ori_fs):
 def infer(data, ori_fs):
     beats: list[int]
     r_peaks: list[int]
-    beats, r_peaks = get_r_peaks(data, ori_fs)
+    beats, r_peaks = get_r_peaks(data, ori_fs=ori_fs)
 
     checked_beats: list[Beat] = get_checked_beats(beats, r_peaks)
 
