@@ -76,8 +76,8 @@ class ChannelGate(nn.Module):
 
 
 class ChannelPool(nn.Module):
-    @staticmethod
-    def forward(x):
+    # noinspection PyMethodMayBeStatic
+    def forward(self, x):
         return torch.cat(
             (torch.max(x, 1)[0].unsqueeze(1), torch.mean(x, 1).unsqueeze(1)), dim=1
         )
