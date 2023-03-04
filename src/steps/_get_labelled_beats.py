@@ -1,5 +1,3 @@
-import logging
-
 import numpy as np
 import torch
 from numpy.typing import NDArray
@@ -37,14 +35,8 @@ def get_labelled_beats(
     """进行预测，获取标签"""
     half_len: int = int(0.75 * fs)
 
-    logging.info("重采样原始信号")
-
     data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
     data: NDArray[float] = _bsw(data, band_hz=0.5)
-
-    logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
-
-    logging.info("分类心拍")
 
     labels: list[str] = [
         "窦性心律",
@@ -92,7 +84,5 @@ def get_labelled_beats(
                 beat.label = labels[pred]
             input_tensor = []
             input_beats = []
-
-    logging.info("分类结束")
 
     return beats, label_cnt

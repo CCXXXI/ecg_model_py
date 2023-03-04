@@ -1,4 +1,3 @@
-import logging
 from pprint import pp
 
 import numpy as np
@@ -13,8 +12,6 @@ from utils.models import load_models
 # These classes must be imported, otherwise the model cannot be loaded.
 # noinspection PyStatementEffect
 CBR_1D, Unet_1D
-
-logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO)
 
 
 def infer(data: NDArray[float], ori_fs: int) -> tuple[dict[str, int], list[Beat], str]:

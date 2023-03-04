@@ -1,4 +1,3 @@
-import logging
 import math
 from typing import Final
 
@@ -144,12 +143,9 @@ def _output_sliding_voting_v2(
 
 def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]]:
     """提取R波切分心拍"""
-    logging.info("重采样原始信号")
     data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net: int = 10 * 60 * fs
-    logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
 
-    logging.info("提取波群信息")
     len_data: int = data.shape[0]
     beats: list[int] = []
     r_peaks: list[int] = []
@@ -184,5 +180,5 @@ def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]
                 r_peaks.append(r + cur_s)
 
         cur_s += 9 * 60 * fs
-    logging.info(f"提取成功，提取出{len(beats)}个心拍")
+
     return beats, r_peaks
