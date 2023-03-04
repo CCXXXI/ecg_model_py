@@ -4,6 +4,3 @@ channels: [ conda-forge, pytorch ]
 dependencies:
   - pytorch
   - scipy
-  # dev
-  - mypy
-  - black
