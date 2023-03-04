@@ -44,8 +44,8 @@ class BasicConv(nn.Module):
 
 
 class Flatten(nn.Module):
-    @staticmethod
-    def forward(x):
+    # noinspection PyMethodMayBeStatic
+    def forward(self, x):
         return x.view(x.size(0), -1)
 
 
