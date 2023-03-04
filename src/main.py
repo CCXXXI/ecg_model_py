@@ -26,14 +26,25 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 fs: Final[int] = 240
 
-
 u_net: Unet_1D
+res_net: ResNet
 
 
 def load_models(path: str) -> None:
     global u_net
     u_net = torch.load(path + "240HZ_t+c_v2_best.pt", map_location=device)
     u_net.eval()
+
+    global res_net
+    res_net = models.resnet34_cbam_ch1(num_classes=10)
+    res_net.load_state_dict(
+        torch.load(
+            path + "best_w.pth",
+            map_location="cpu",
+        )["state_dict"]
+    )
+    res_net = res_net.to(device)
+    res_net.eval()
 
 
 @dataclass
@@ -235,75 +246,6 @@ def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]
         cur_s += 9 * 60 * fs
     logging.info(f"提取成功，提取出{len(beats)}个心拍")
     return beats, r_peaks
-
-
-def classification_beats(
-    data: NDArray[float],
-    beats: list[Beat],
-    resnet: ResNet,
-    ori_fs: int,
-) -> tuple[list[Beat], dict[str, int]]:
-    half_len: int = int(0.75 * fs)
-
-    logging.info("重采样原始信号")
-
-    data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
-    data: NDArray[float] = bsw(data, band_hz=0.5)
-
-    logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
-
-    logging.info("分类心拍")
-
-    labels: list[str] = [
-        "窦性心律",
-        "房性早搏",
-        "心房扑动",
-        "心房颤动",
-        "室性早搏",
-        "阵发性室上性心动过速",
-        "心室预激",
-        "室扑室颤",
-        "房室传导阻滞",
-        "噪声",
-    ]
-    label_cnt: dict[str, int] = {label: 0 for label in labels}
-
-    batch_size: int = 64
-    input_tensor: list[Tensor] = []
-    input_beats: list[Beat] = []
-
-    beat: Beat
-    for idx, beat in enumerate(beats):
-        if beat.position < half_len or beat.position >= data.shape[0] - half_len:
-            beat.label = ""
-            continue
-
-        x: NDArray[float] = data[beat.position - half_len : beat.position + half_len]
-        x: NDArray[float] = np.reshape(x, (1, half_len * 2))
-        x: NDArray[float] = (x - np.mean(x)) / np.std(x)
-        x: NDArray[float] = x.T
-        x_tensor: Tensor = transform(x).unsqueeze(0).to(device)
-        input_tensor.append(x_tensor)
-        input_beats.append(beat)
-
-        if len(input_tensor) % batch_size == 0 or idx == len(beats) - 1:
-            x_tensor = torch.vstack(input_tensor)
-            output: Tensor = torch.softmax(resnet(x_tensor), dim=1).squeeze()
-
-            # 修改维度
-            y_pred: Tensor = torch.argmax(output, dim=1, keepdim=False)
-            for i, pred in enumerate(y_pred):
-                pred: Tensor
-                pred: int = pred.item()
-                beat = input_beats[i]
-                label_cnt[labels[pred]] += 1
-                beat.label = labels[pred]
-            input_tensor = []
-            input_beats = []
-
-    logging.info("分类结束")
-
-    return beats, label_cnt
 
 
 def get_lf_hf(
@@ -815,23 +757,73 @@ def get_checked_beats(beats: list[int], r_peaks: list[int]) -> list[Beat]:
     return checked_beats
 
 
-def get_labels(data, checked_beats, ori_fs):
+def get_labels(
+    data: NDArray[float],
+    beats: list[Beat],
+    ori_fs: int,
+) -> tuple[list[Beat], dict[str, int]]:
     """进行预测，获取标签"""
-    resnet = getattr(models, "resnet34_cbam_ch1")(num_classes=10)
-    resnet.load_state_dict(
-        torch.load(
-            "../assets/best_w.pth",
-            map_location="cpu",
-        )["state_dict"]
-    )
-    resnet = resnet.to(device)
-    resnet.eval()
-    return classification_beats(
-        data,
-        checked_beats,
-        resnet=resnet,
-        ori_fs=ori_fs,
-    )
+    half_len: int = int(0.75 * fs)
+
+    logging.info("重采样原始信号")
+
+    data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
+    data: NDArray[float] = bsw(data, band_hz=0.5)
+
+    logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
+
+    logging.info("分类心拍")
+
+    labels: list[str] = [
+        "窦性心律",
+        "房性早搏",
+        "心房扑动",
+        "心房颤动",
+        "室性早搏",
+        "阵发性室上性心动过速",
+        "心室预激",
+        "室扑室颤",
+        "房室传导阻滞",
+        "噪声",
+    ]
+    label_cnt: dict[str, int] = {label: 0 for label in labels}
+
+    batch_size: int = 64
+    input_tensor: list[Tensor] = []
+    input_beats: list[Beat] = []
+
+    beat: Beat
+    for idx, beat in enumerate(beats):
+        if beat.position < half_len or beat.position >= data.shape[0] - half_len:
+            beat.label = ""
+            continue
+
+        x: NDArray[float] = data[beat.position - half_len : beat.position + half_len]
+        x: NDArray[float] = np.reshape(x, (1, half_len * 2))
+        x: NDArray[float] = (x - np.mean(x)) / np.std(x)
+        x: NDArray[float] = x.T
+        x_tensor: Tensor = transform(x).unsqueeze(0).to(device)
+        input_tensor.append(x_tensor)
+        input_beats.append(beat)
+
+        if len(input_tensor) % batch_size == 0 or idx == len(beats) - 1:
+            x_tensor = torch.vstack(input_tensor)
+            output: Tensor = torch.softmax(res_net(x_tensor), dim=1).squeeze()
+
+            # 修改维度
+            y_pred: Tensor = torch.argmax(output, dim=1, keepdim=False)
+            for i, pred in enumerate(y_pred):
+                pred: Tensor
+                pred: int = pred.item()
+                beat = input_beats[i]
+                label_cnt[labels[pred]] += 1
+                beat.label = labels[pred]
+            input_tensor = []
+            input_beats = []
+
+    logging.info("分类结束")
+
+    return beats, label_cnt
 
 
 def infer(data, ori_fs):
