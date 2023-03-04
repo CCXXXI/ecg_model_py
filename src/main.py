@@ -14,9 +14,9 @@ from torch.nn.functional import softmax
 import models
 from models.CMI_ECG_segmentation_CNV2 import CBR_1D, Unet_1D
 
-# The two classes must be imported, otherwise the model cannot be loaded.
+# This must be imported, otherwise the model cannot be loaded.
 # noinspection PyStatementEffect
-CBR_1D, Unet_1D
+CBR_1D
 
 logging.basicConfig(format="%(asctime)s %(message)s", level=logging.INFO)
 
@@ -190,33 +190,39 @@ def u_net_r_peak(x: npt.NDArray[np.bool_]) -> list[int]:
     return r_list
 
 
-def get_24h_beats(data, u_net, ori_fs) -> tuple[list[np.int32], list[np.int64]]:
+def get_24h_beats(
+    data: npt.NDArray[np.float64], u_net: Unet_1D, ori_fs: int
+) -> tuple[list[np.int32], list[np.int64]]:
     """提取R波和心拍"""
     logging.info("重采样原始信号")
-    data = signal.resample(data, len(data) * fs // ori_fs)
-    len_u_net = 10 * 60 * fs
+    data: npt.NDArray[np.float64] = signal.resample(data, len(data) * fs // ori_fs)
+    len_u_net: int = 10 * 60 * fs
     logging.info(f"重采样成功，采样后数据长度：{data.shape[0]}")
 
     logging.info("提取波群信息")
-    len_data = data.shape[0]
-    beats = []
-    r_peaks = []
-    cur_s = 0
+    len_data: int = data.shape[0]
+    beats: list[np.int32] = []
+    r_peaks: list[np.int32] = []
+    cur_s: int = 0
     while cur_s < len_data:
         if cur_s + len_u_net <= len_data:
-            now_s = cur_s + len_u_net
+            now_s: int = cur_s + len_u_net
         else:
             break
+        p: npt.NDArray[np.bool_]
+        n: npt.NDArray[np.bool_]
+        t: npt.NDArray[np.bool_]
+        r: npt.NDArray[np.bool_]
         p, n, t, r = u_net_peak(data[cur_s:now_s], model=u_net)
 
-        beat_list = u_net_r_peak(n)
-        r_list = r_detection_u_net(data[cur_s:now_s], n)
+        beat_list: list[int] = u_net_r_peak(n)
+        r_list: list[int | np.int64] = r_detection_u_net(data[cur_s:now_s], n)
         # 记录QRS波中点，以该点标识心拍     之后两边扩展
-        beat_list = np.array(beat_list)
-        r_list = np.array(r_list)
+        beat_list: npt.NDArray[np.int32] = np.array(beat_list)
+        r_list: npt.NDArray[np.int64] = np.array(r_list)
 
-        append_start = int(0.5 * 60 * fs)
-        append_end = int(9.5 * 60 * fs)
+        append_start: int = int(0.5 * 60 * fs)
+        append_end: int = int(9.5 * 60 * fs)
         if cur_s == 0:
             append_start = 0
 
