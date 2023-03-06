@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
 
-from utils import Beat, fs, load_model
+from utils import Label, Beat, fs, load_model
 
 
 def _bsw(data: NDArray[float], band_hz: float) -> NDArray[float]:
@@ -29,19 +29,6 @@ def get_labelled_beats(
 
     data = signal.resample(data, len(data) * fs // ori_fs)
     data = _bsw(data, band_hz=0.5)
-
-    labels = [
-        "窦性心律",
-        "房性早搏",
-        "心房扑动",
-        "心房颤动",
-        "室性早搏",
-        "阵发性室上性心动过速",
-        "心室预激",
-        "室扑室颤",
-        "房室传导阻滞",
-        "噪声",
-    ]
 
     batch_size = 64
     input_tensor: list[Tensor] = []
@@ -71,7 +58,7 @@ def get_labelled_beats(
                 pred: Tensor
                 pred_i: int = pred.item()
                 beat = input_beats[i]
-                beat.label = labels[pred_i]
+                beat.label = Label(pred_i)
             input_tensor = []
             input_beats = []
 

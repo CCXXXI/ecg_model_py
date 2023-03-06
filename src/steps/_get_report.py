@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from scipy import integrate
 from scipy.interpolate import interp1d
 
-from utils import Beat, fs
+from utils import Label, Beat, fs
 
 
 def _sample_to_time(position: int) -> tuple[int, int, int]:
@@ -97,23 +97,23 @@ def get_report(beats: list[Beat]) -> str:
     len_my_beats: int = len(beats)
 
     for index, beat in enumerate(beats):
-        if beat.label == "":
+        if beat.label is Label.未知:
             continue
         rr.append(beat.r_peak if not beat.r_peak == -1 else beat.position)
         if not beat.is_new:
             qrs_num += 1
-        if beat.label == "房性早搏":  # 单发、成对、二联律、三联律、短阵
+        if beat.label is Label.房性早搏:  # 单发、成对、二联律、三联律、短阵
             apb.append(beat.position)
             if iteration_num > 0:
                 iteration_num -= 1
                 continue
-            if index + 1 < len_my_beats and beats[index + 1].label == "房性早搏":
+            if index + 1 < len_my_beats and beats[index + 1].label is Label.房性早搏:
                 apb_probe = 2
                 apb_short_array_list = [beat.position, beats[index + 1].position]
                 while True:
                     if (
                         index + apb_probe < len_my_beats
-                        and beats[index + apb_probe].label == "房性早搏"
+                        and beats[index + apb_probe].label is Label.房性早搏
                     ):
                         apb_short_array_list.append(
                             beats[index + apb_probe].position
@@ -128,31 +128,34 @@ def get_report(beats: list[Beat]) -> str:
                     apb_short_array.append(apb_short_array_list)
                     iteration_num = apb_probe - 1
             else:
-                if index + 2 < len_my_beats and beats[index + 2].label == "房性早搏":
+                if index + 2 < len_my_beats and beats[index + 2].label is Label.房性早搏:
                     apb_double_rhythm.append(beat.position)  # 出现房早二联律
                     iteration_num = 2
                 else:
-                    if index + 3 < len_my_beats and beats[index + 3].label == "房性早搏":
+                    if (
+                        index + 3 < len_my_beats
+                        and beats[index + 3].label is Label.房性早搏
+                    ):
                         if (
                             index + 6 < len_my_beats
-                            and beats[index + 6].label == "房性早搏"
+                            and beats[index + 6].label is Label.房性早搏
                         ):
                             apb_triple_rhythm.append(beat.position)  # 出现房早三联律
                             iteration_num = 6
                     else:
                         apb_single.append(beat.position)  # 单发房早
-        if beat.label == "室性早搏":  # 单发、成对、二联律、三联律、短阵
+        if beat.label is Label.室性早搏:  # 单发、成对、二联律、三联律、短阵
             vpb.append(beat.position)
             if iteration_num > 0:
                 iteration_num -= 1
                 continue
-            if index + 1 < len_my_beats and beats[index + 1].label == "室性早搏":
+            if index + 1 < len_my_beats and beats[index + 1].label is Label.室性早搏:
                 vpb_probe = 2
                 vpb_short_array_list = [beat.position, beats[index + 1].position]
                 while True:
                     if (
                         index + vpb_probe < len_my_beats
-                        and beats[index + vpb_probe].label == "室性早搏"
+                        and beats[index + vpb_probe].label is Label.室性早搏
                     ):
                         vpb_short_array_list.append(
                             beats[index + vpb_probe].position
@@ -167,30 +170,33 @@ def get_report(beats: list[Beat]) -> str:
                     vpb_short_array.append(vpb_short_array_list)
                     iteration_num = vpb_probe - 1
             else:
-                if index + 2 < len_my_beats and beats[index + 2].label == "室性早搏":
+                if index + 2 < len_my_beats and beats[index + 2].label is Label.室性早搏:
                     vpb_double_rhythm.append(beat.position)  # 出现室早二联律
                     iteration_num = 2
                 else:
-                    if index + 3 < len_my_beats and beats[index + 3].label == "室性早搏":
+                    if (
+                        index + 3 < len_my_beats
+                        and beats[index + 3].label is Label.室性早搏
+                    ):
                         if (
                             index + 6 < len_my_beats
-                            and beats[index + 6].label == "室性早搏"
+                            and beats[index + 6].label is Label.室性早搏
                         ):
                             vpb_triple_rhythm.append(beat.position)  # 出现室早三联律
                             iteration_num = 6
                     else:
                         vpb_single.append(beat.position)  # 单发室早
-        if beat.label == "窦性心律" and not beat.is_new and index < len_my_beats - 1:
+        if beat.label is Label.窦性心律 and not beat.is_new and index < len_my_beats - 1:
             n_num += 1
             if not n_flag:
-                if index + 1 < len_my_beats and beats[index + 1].label == "窦性心律":
+                if index + 1 < len_my_beats and beats[index + 1].label is Label.窦性心律:
                     n_continuous_beats.append(beat.r_peak)
                     n_flag = True
             else:
                 n_continuous_beats.append(beat.r_peak)
         else:
             if index == len_my_beats - 1:
-                if beat.label == "窦性心律" and not beat.is_new:
+                if beat.label is Label.窦性心律 and not beat.is_new:
                     n_num += 1
                     n_continuous_beats.append(beat.r_peak)
             if n_flag:
@@ -204,11 +210,11 @@ def get_report(beats: list[Beat]) -> str:
                 n_continuous_beats.clear()
                 n_flag = False
 
-        if beat.label == "心房扑动" or beat.label == "心房颤动":
+        if beat.label is Label.心房扑动 or beat.label is Label.心房颤动:
             if not af_flag:
                 if (
                     index + 1 < len_my_beats
-                    and beats[index + 1].label == "心房扑动"
+                    and beats[index + 1].label is Label.心房扑动
                     or "心房颤动"
                     and index < len_my_beats - 1
                 ):
@@ -222,7 +228,7 @@ def get_report(beats: list[Beat]) -> str:
                 )
         else:
             if index == len_my_beats - 1:
-                if beat.label == "心房扑动" or beat.label == "心房颤动":
+                if beat.label is Label.心房扑动 or beat.label is Label.心房颤动:
                     af_continuous_beats.append(
                         beat.r_peak if beat.r_peak != -1 else beat.position
                     )
@@ -232,12 +238,14 @@ def get_report(beats: list[Beat]) -> str:
                 af_continuous_beats.clear()
                 af_flag = False
         # 室扑室颤噪声检查
-        if beat.label == "室扑室颤":
+        if beat.label is Label.室扑室颤:
             if iteration_num > 0:
                 iteration_num -= 1
                 continue
             vf_probe = index
-            while vf_probe + 1 < len_my_beats and beats[vf_probe + 1].label == "室扑室颤":
+            while (
+                vf_probe + 1 < len_my_beats and beats[vf_probe + 1].label is Label.室扑室颤
+            ):
                 vf_probe += 1
             vf_time = int((beats[vf_probe].position - beat.position) / fs)
             if vf_time <= 2:
