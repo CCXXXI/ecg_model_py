@@ -99,7 +99,7 @@ def get_report(beats: list[Beat]) -> str:
     for index, beat in enumerate(beats):
         if beat.label is Label.未知:
             continue
-        rr.append(beat.r_peak if not beat.r_peak == -1 else beat.position)
+        rr.append(beat.r_peak if beat.r_peak != -1 else beat.position)
         if not beat.is_new:
             qrs_num += 1
         if beat.label is Label.房性早搏:  # 单发、成对、二联律、三联律、短阵
@@ -210,25 +210,22 @@ def get_report(beats: list[Beat]) -> str:
                 n_continuous_beats.clear()
                 n_flag = False
 
-        if beat.label is Label.心房扑动 or beat.label is Label.心房颤动:
+        if beat.label in (Label.心房扑动, Label.心房颤动):
             if not af_flag:
-                if (
-                    index + 1 < len_my_beats
-                    and beats[index + 1].label is Label.心房扑动
-                    or "心房颤动"
-                    and index < len_my_beats - 1
+                if (next_ := index + 1) < len_my_beats and (
+                    beats[next_].label in (Label.心房扑动, Label.心房颤动)
                 ):
                     af_continuous_beats.append(
-                        beat.r_peak if not beat.r_peak == -1 else beat.position
+                        beat.r_peak if beat.r_peak != -1 else beat.position
                     )
                     af_flag = True
             else:
                 af_continuous_beats.append(
-                    beat.r_peak if not beat.r_peak == -1 else beat.position
+                    beat.r_peak if beat.r_peak != -1 else beat.position
                 )
         else:
             if index == len_my_beats - 1:
-                if beat.label is Label.心房扑动 or beat.label is Label.心房颤动:
+                if beat.label in (Label.心房扑动, Label.心房颤动):
                     af_continuous_beats.append(
                         beat.r_peak if beat.r_peak != -1 else beat.position
                     )
