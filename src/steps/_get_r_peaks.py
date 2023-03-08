@@ -74,7 +74,7 @@ def _u_net_r_peak(x: NDArray[bool]) -> list[int]:
 
 
 def _r_detection_u_net(data: NDArray[float], n: NDArray[bool]) -> list[int]:
-    # 获取R波波峰
+    """获取R波波峰"""
     x: NDArray[float] = data.copy()
     n_: NDArray[bool] = np.array(n)
     n_ = np.insert(n_, len(x), False)
