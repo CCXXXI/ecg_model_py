@@ -270,7 +270,6 @@ def get_report(beats: list[Beat]) -> str:
     n_ventricular_mean_rate = int(60 / (n_diff_sum / n_diff_num / fs))
     n_ventricular_max_rate = int(60 / (n_min_diff / fs))
     n_ventricular_min_rate = int(60 / (n_max_diff / fs))
-    buffer.append("------数据------\n")
     display_number = 1
     if 60 <= n_ventricular_mean_rate <= 100:
         n_state = "窦性心律"
