@@ -9,10 +9,10 @@ from utils import Label, Beat, fs
 
 
 def _sample_to_time(position: int) -> tuple[int, int, int]:
-    total_seconds = position / fs
-    h = int(total_seconds // 3600)
-    m = int((total_seconds % 3600) // 60)
-    s = int((total_seconds % 3600 % 60))
+    total_seconds = position // fs
+    h = total_seconds // 3600
+    m = total_seconds % 3600 // 60
+    s = total_seconds % 60
     return h, m, s
 
 
