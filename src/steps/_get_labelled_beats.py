@@ -36,7 +36,7 @@ def get_labelled_beats(
 
     for idx, beat in enumerate(beats):
         if beat.position < half_len or beat.position >= data.shape[0] - half_len:
-            beat.label = ""
+            beat.label = Label.未知
             continue
 
         x: NDArray[float] = data[beat.position - half_len : beat.position + half_len]
