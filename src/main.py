@@ -16,16 +16,18 @@ def infer(data: NDArray[float], ori_fs: int) -> tuple[list[Beat], str]:
 
 
 def main() -> None:
-    input_path = "../assets/input/107_leadII_10min.txt"
+    input_path = "../assets/ecg_data/107_leadII_10min.txt"
 
-    set_models_path("../assets/models/")
+    set_models_path("../assets/ecg_models/models/")
 
     with torch.no_grad():
         labelled_beats, report = infer(np.loadtxt(input_path), 250)
 
-    with open("../assets/output/labelled_beats.txt", "w", encoding="utf-8") as f:
+    with open(
+        "../assets/ecg_models/output/labelled_beats.txt", "w", encoding="utf-8"
+    ) as f:
         print(*labelled_beats, sep="\n", file=f)
-    with open("../assets/output/report.txt", "w", encoding="utf-8") as f:
+    with open("../assets/ecg_models/output/report.txt", "w", encoding="utf-8") as f:
         f.write(report)
 
 
