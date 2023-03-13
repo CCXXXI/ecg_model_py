@@ -17,27 +17,26 @@ def _sample_to_time(position: int) -> tuple[int, int, int]:
     return h, m, s
 
 
-def _get_lf_hf(
-    rr_intervals: NDArray[float], rr_interval_times: NDArray[float]
-) -> tuple[int, float]:
+def _get_lf_hf(rr_intervals: NDArray[float],
+               rr_interval_times: NDArray[float]) -> tuple[int, float]:
     resampling_period = 0.5
-    interpolated_rr_intervals = interp1d(
-        rr_interval_times, rr_intervals, kind="cubic")
+    interpolated_rr_intervals = interp1d(rr_interval_times,
+                                         rr_intervals,
+                                         kind="cubic")
     # fft conversion
     start_time: float = interpolated_rr_intervals.x[0]
     end_time: float = interpolated_rr_intervals.x[-1]
-    fixed_times: NDArray[float] = np.arange(
-        start_time, end_time, resampling_period)
+    fixed_times: NDArray[float] = np.arange(start_time, end_time,
+                                            resampling_period)
     num_samples: int = fixed_times.shape[0]
     resampled_rr_intervals = interpolated_rr_intervals(fixed_times)
-    frequencies: NDArray[float] = np.fft.fftfreq(
-        num_samples, d=resampling_period)
+    frequencies: NDArray[float] = np.fft.fftfreq(num_samples,
+                                                 d=resampling_period)
     non_negative_frequency_index: NDArray[bool] = frequencies >= 0
 
     frequencies = frequencies[non_negative_frequency_index]
-    fft_converted: NDArray[np.complex128] = np.fft.fft(resampled_rr_intervals)[
-        non_negative_frequency_index
-    ]
+    fft_converted: NDArray[np.complex128] = np.fft.fft(
+        resampled_rr_intervals)[non_negative_frequency_index]
     amplitudes: NDArray[float] = np.abs(fft_converted)
     powers: NDArray[float] = amplitudes**2
 
@@ -55,14 +54,14 @@ def _get_lf_hf(
     # 利用积分来代替个数
     if not start_index >= boundary_index:
         lf_integrated = integrate.simps(
-            powers[start_index:boundary_index], frequencies[start_index:boundary_index]
-        )
+            powers[start_index:boundary_index],
+            frequencies[start_index:boundary_index])
     else:
         lf_integrated = -1
     if not end_index <= boundary_index:
         hf_integrated = integrate.simps(
-            powers[boundary_index: end_index + 1],
-            frequencies[boundary_index: end_index + 1],
+            powers[boundary_index:end_index + 1],
+            frequencies[boundary_index:end_index + 1],
         )
     else:
         hf_integrated = -1
@@ -111,18 +110,17 @@ def get_report(beats: list[Beat]) -> str:
             if iteration_num > 0:
                 iteration_num -= 1
                 continue
-            if index + 1 < len_my_beats and beats[index + 1].label is Label.房性早搏:
+            if index + 1 < len_my_beats and beats[index +
+                                                  1].label is Label.房性早搏:
                 apb_probe = 2
                 apb_short_array_list = [
-                    beat.position, beats[index + 1].position]
+                    beat.position, beats[index + 1].position
+                ]
                 while True:
-                    if (
-                        index + apb_probe < len_my_beats
-                        and beats[index + apb_probe].label is Label.房性早搏
-                    ):
+                    if (index + apb_probe < len_my_beats
+                            and beats[index + apb_probe].label is Label.房性早搏):
                         apb_short_array_list.append(
-                            beats[index + apb_probe].position
-                        )  # 出现短阵房早
+                            beats[index + apb_probe].position)  # 出现短阵房早
                         apb_probe += 1
                     else:
                         break
@@ -133,18 +131,15 @@ def get_report(beats: list[Beat]) -> str:
                     apb_short_array.append(apb_short_array_list)
                     iteration_num = apb_probe - 1
             else:
-                if index + 2 < len_my_beats and beats[index + 2].label is Label.房性早搏:
+                if index + 2 < len_my_beats and beats[index +
+                                                      2].label is Label.房性早搏:
                     apb_double_rhythm.append(beat.position)  # 出现房早二联律
                     iteration_num = 2
                 else:
-                    if (
-                        index + 3 < len_my_beats
-                        and beats[index + 3].label is Label.房性早搏
-                    ):
-                        if (
-                            index + 6 < len_my_beats
-                            and beats[index + 6].label is Label.房性早搏
-                        ):
+                    if (index + 3 < len_my_beats
+                            and beats[index + 3].label is Label.房性早搏):
+                        if (index + 6 < len_my_beats
+                                and beats[index + 6].label is Label.房性早搏):
                             apb_triple_rhythm.append(beat.position)  # 出现房早三联律
                             iteration_num = 6
                     else:
@@ -154,18 +149,17 @@ def get_report(beats: list[Beat]) -> str:
             if iteration_num > 0:
                 iteration_num -= 1
                 continue
-            if index + 1 < len_my_beats and beats[index + 1].label is Label.室性早搏:
+            if index + 1 < len_my_beats and beats[index +
+                                                  1].label is Label.室性早搏:
                 vpb_probe = 2
                 vpb_short_array_list = [
-                    beat.position, beats[index + 1].position]
+                    beat.position, beats[index + 1].position
+                ]
                 while True:
-                    if (
-                        index + vpb_probe < len_my_beats
-                        and beats[index + vpb_probe].label is Label.室性早搏
-                    ):
+                    if (index + vpb_probe < len_my_beats
+                            and beats[index + vpb_probe].label is Label.室性早搏):
                         vpb_short_array_list.append(
-                            beats[index + vpb_probe].position
-                        )  # 出现短阵室早
+                            beats[index + vpb_probe].position)  # 出现短阵室早
                         vpb_probe += 1
                     else:
                         break
@@ -176,18 +170,15 @@ def get_report(beats: list[Beat]) -> str:
                     vpb_short_array.append(vpb_short_array_list)
                     iteration_num = vpb_probe - 1
             else:
-                if index + 2 < len_my_beats and beats[index + 2].label is Label.室性早搏:
+                if index + 2 < len_my_beats and beats[index +
+                                                      2].label is Label.室性早搏:
                     vpb_double_rhythm.append(beat.position)  # 出现室早二联律
                     iteration_num = 2
                 else:
-                    if (
-                        index + 3 < len_my_beats
-                        and beats[index + 3].label is Label.室性早搏
-                    ):
-                        if (
-                            index + 6 < len_my_beats
-                            and beats[index + 6].label is Label.室性早搏
-                        ):
+                    if (index + 3 < len_my_beats
+                            and beats[index + 3].label is Label.室性早搏):
+                        if (index + 6 < len_my_beats
+                                and beats[index + 6].label is Label.室性早搏):
                             vpb_triple_rhythm.append(beat.position)  # 出现室早三联律
                             iteration_num = 6
                     else:
@@ -195,7 +186,8 @@ def get_report(beats: list[Beat]) -> str:
         if beat.label is Label.窦性心律 and not beat.is_new and index < len_my_beats - 1:
             n_num += 1
             if not n_flag:
-                if index + 1 < len_my_beats and beats[index + 1].label is Label.窦性心律:
+                if index + 1 < len_my_beats and beats[index +
+                                                      1].label is Label.窦性心律:
                     n_continuous_beats.append(beat.r_peak)
                     n_flag = True
             else:
@@ -219,23 +211,20 @@ def get_report(beats: list[Beat]) -> str:
 
         if beat.label in (Label.心房扑动, Label.心房颤动):
             if not af_flag:
-                if (next_ := index + 1) < len_my_beats and (
-                    beats[next_].label in (Label.心房扑动, Label.心房颤动)
-                ):
+                if (next_ := index + 1) < len_my_beats and (beats[next_].label
+                                                            in (Label.心房扑动,
+                                                                Label.心房颤动)):
                     af_continuous_beats.append(
-                        beat.r_peak if beat.r_peak != -1 else beat.position
-                    )
+                        beat.r_peak if beat.r_peak != -1 else beat.position)
                     af_flag = True
             else:
                 af_continuous_beats.append(
-                    beat.r_peak if beat.r_peak != -1 else beat.position
-                )
+                    beat.r_peak if beat.r_peak != -1 else beat.position)
         else:
             if index == len_my_beats - 1:
                 if beat.label in (Label.心房扑动, Label.心房颤动):
                     af_continuous_beats.append(
-                        beat.r_peak if beat.r_peak != -1 else beat.position
-                    )
+                        beat.r_peak if beat.r_peak != -1 else beat.position)
             if af_flag:
                 af_continuous_diff = np.diff(np.array(af_continuous_beats))
                 af_diff.append(af_continuous_diff)
@@ -247,11 +236,8 @@ def get_report(beats: list[Beat]) -> str:
                 iteration_num -= 1
                 continue
             vf_probe = index
-            while (
-                vf_probe +
-                    1 < len_my_beats and beats[vf_probe +
-                                               1].label is Label.室扑室颤
-            ):
+            while (vf_probe + 1 < len_my_beats
+                   and beats[vf_probe + 1].label is Label.室扑室颤):
                 vf_probe += 1
             vf_time = int((beats[vf_probe].position - beat.position) / fs)
             if vf_time <= 2:
@@ -288,15 +274,13 @@ def get_report(beats: list[Beat]) -> str:
         n_state = "窦性心动过速"
     else:
         assert False
-    buffer.append(
-        "{}、{}:平均心室率：{}，最快心室率：{}，最慢心室率：{}\n".format(
-            display_number,
-            n_state,
-            n_ventricular_mean_rate,
-            n_ventricular_max_rate,
-            n_ventricular_min_rate,
-        )
-    )
+    buffer.append("{}、{}:平均心室率：{}，最快心室率：{}，最慢心室率：{}\n".format(
+        display_number,
+        n_state,
+        n_ventricular_mean_rate,
+        n_ventricular_max_rate,
+        n_ventricular_min_rate,
+    ))
 
     if not len(n_stop_beats) == 0:
         n_stop_max = 0
@@ -308,15 +292,13 @@ def get_report(beats: list[Beat]) -> str:
         n_stop_max_seconds = n_stop_max / fs
         n_stop_max_h, n_stop_max_m, n_stop_max_s = _sample_to_time(
             n_stop_index)
-        buffer.append(
-            "    发生了{}次窦性停搏,最长的一次为：{:.1f}s，发生于:{}h-{}m-{}s\n".format(
-                len(n_stop_beats),
-                n_stop_max_seconds,
-                n_stop_max_h,
-                n_stop_max_m,
-                n_stop_max_s,
-            )
-        )
+        buffer.append("    发生了{}次窦性停搏,最长的一次为：{:.1f}s，发生于:{}h-{}m-{}s\n".format(
+            len(n_stop_beats),
+            n_stop_max_seconds,
+            n_stop_max_h,
+            n_stop_max_m,
+            n_stop_max_s,
+        ))
     # 计算房扑房颤心室率
     if not len(af_diff) == 0:
         display_number += 1
@@ -335,26 +317,24 @@ def get_report(beats: list[Beat]) -> str:
         af_ventricular_mean_rate = int(60 / (af_diff_sum / af_diff_num / fs))
         af_ventricular_max_rate = int(60 / (af_min_diff / fs))
         af_ventricular_min_rate = int(60 / (af_max_diff / fs))
-        buffer.append(
-            "{}、房扑房颤的平均心室率：{}次/分，最慢心室率：{}次/分，最快心室率：{}次/分\n".format(
-                display_number,
-                af_ventricular_mean_rate,
-                af_ventricular_min_rate,
-                af_ventricular_max_rate,
-            )
-        )
+        buffer.append("{}、房扑房颤的平均心室率：{}次/分，最慢心室率：{}次/分，最快心室率：{}次/分\n".format(
+            display_number,
+            af_ventricular_mean_rate,
+            af_ventricular_min_rate,
+            af_ventricular_max_rate,
+        ))
     if not len(apb) == 0:
         display_number += 1
         buffer.append(
-            "{}、房性早搏{}次/24h,成对房早{}次/24h,房早二联律{}次/24h,房早三联律{}次/24h,短阵房速{}阵/24h\n".format(
+            "{}、房性早搏{}次/24h,成对房早{}次/24h,房早二联律{}次/24h,房早三联律{}次/24h,短阵房速{}阵/24h\n"
+            .format(
                 display_number,
                 int(len(apb) * 24 / len_h),
                 int(len(apb_double) * 24 / len_h),
                 int(len(apb_double_rhythm) * 24 / len_h),
                 int(len(apb_triple_rhythm) * 24 / len_h),
                 math.ceil((len(apb_short_array) * 24 / len_h)),
-            )
-        )
+            ))
         # 短阵房早
         if not len(apb_short_array) == 0:
             apb_short_array_diff = []
@@ -370,31 +350,30 @@ def get_report(beats: list[Beat]) -> str:
             apb_short_array_ventricular_max_rate = 60 / \
                 (apb_short_array_min_diff / fs)
             apb_shor_array_h, apb_shor_array_m, apb_shor_array_s = _sample_to_time(
-                apb_short_array[apb_short_array_min_index][0]
-            )
+                apb_short_array[apb_short_array_min_index][0])
             buffer.append(
-                "其中，短阵房速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".format(
+                "其中，短阵房速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".
+                format(
                     int(apb_short_array_ventricular_max_rate),
                     len(apb_short_array[apb_short_array_min_index]),
-                    int(apb_short_array[apb_short_array_min_index]
-                        [0] * 250 / fs),
+                    int(apb_short_array[apb_short_array_min_index][0] * 250 /
+                        fs),
                     apb_shor_array_h,
                     apb_shor_array_m,
                     apb_shor_array_s,
-                )
-            )
+                ))
     if not len(vpb) == 0:
         display_number += 1
         buffer.append(
-            "{}、室性早搏{}次/24h,成对室早{}次/24h,室早二联律{}次/24h,室早三联律{}次/24h,短阵室速{}阵/24h\n".format(
+            "{}、室性早搏{}次/24h,成对室早{}次/24h,室早二联律{}次/24h,室早三联律{}次/24h,短阵室速{}阵/24h\n"
+            .format(
                 display_number,
                 int(len(vpb) * 24 / len_h),
                 int(len(vpb_double) * 24 / len_h),
                 int(len(vpb_double_rhythm) * 24 / len_h),
                 int(len(vpb_triple_rhythm) * 24 / len_h),
                 math.ceil((len(vpb_short_array) * 24 / len_h)),
-            )
-        )
+            ))
         # 短阵室早
         if not len(vpb_short_array) == 0:
             vpb_short_array_diff = []
@@ -410,28 +389,26 @@ def get_report(beats: list[Beat]) -> str:
             vpb_short_array_ventricular_max_rate = 60 / \
                 (vpb_short_array_min_diff / fs)
             vpb_shor_array_h, vpb_shor_array_m, vpb_shor_array_s = _sample_to_time(
-                vpb_short_array[vpb_short_array_min_index][0]
-            )
+                vpb_short_array[vpb_short_array_min_index][0])
             buffer.append(
-                "其中，短阵室速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".format(
+                "其中，短阵室速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".
+                format(
                     int(vpb_short_array_ventricular_max_rate),
                     len(vpb_short_array[vpb_short_array_min_index]),
-                    int(vpb_short_array[vpb_short_array_min_index]
-                        [0] * 250 / fs),
+                    int(vpb_short_array[vpb_short_array_min_index][0] * 250 /
+                        fs),
                     vpb_shor_array_h,
                     vpb_shor_array_m,
                     vpb_shor_array_s,
-                )
-            )
+                ))
     # 室扑室颤
     if not len(vf) == 0:
         display_number += 1
         buffer.append("{}、出现室扑室颤，如下：\n".format(display_number))
         for v in vf:
             vf_h, vf_m, vf_s = _sample_to_time(v[0])
-            buffer.append(
-                "在{}h-{}m-{}s发生室扑室颤，持续时长{}s\n".format(vf_h, vf_m, vf_s, vf[1])
-            )
+            buffer.append("在{}h-{}m-{}s发生室扑室颤，持续时长{}s\n".format(
+                vf_h, vf_m, vf_s, vf[1]))
     # 计算HRV
 
     # lf-hf
