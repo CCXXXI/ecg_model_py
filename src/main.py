@@ -28,12 +28,11 @@ def main() -> None:
     with torch.no_grad():
         labelled_beats, report = infer(np.loadtxt(input_path), 125)
 
-    with open("../assets/ecg_models/output/labelled_beats.txt",
-              "w",
-              encoding="utf-8") as f:
+    with open(
+        "../assets/ecg_models/output/labelled_beats.txt", "w", encoding="utf-8"
+    ) as f:
         print(*labelled_beats, sep="\n", file=f)
-    with open("../assets/ecg_models/output/report.txt", "w",
-              encoding="utf-8") as f:
+    with open("../assets/ecg_models/output/report.txt", "w", encoding="utf-8") as f:
         f.write(report)
 
 
