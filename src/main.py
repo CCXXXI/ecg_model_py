@@ -16,7 +16,7 @@ def infer(data: NDArray[float], ori_fs: int) -> tuple[list[Beat], str]:
 
 
 def main() -> None:
-    input_path = "../assets/ecg_data/assets/lead I.txt"
+    input_path = "../assets/ecg_data/assets/lead II.txt"
 
     set_models_path("../assets/ecg_models/models/")
 
