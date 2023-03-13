@@ -20,14 +20,17 @@ def _get_lf_hf(
     rr_intervals: NDArray[float], rr_interval_times: NDArray[float]
 ) -> tuple[int, float]:
     resampling_period = 0.5
-    interpolated_rr_intervals = interp1d(rr_interval_times, rr_intervals, kind="cubic")
+    interpolated_rr_intervals = interp1d(
+        rr_interval_times, rr_intervals, kind="cubic")
     # fft conversion
     start_time: float = interpolated_rr_intervals.x[0]
     end_time: float = interpolated_rr_intervals.x[-1]
-    fixed_times: NDArray[float] = np.arange(start_time, end_time, resampling_period)
+    fixed_times: NDArray[float] = np.arange(
+        start_time, end_time, resampling_period)
     num_samples: int = fixed_times.shape[0]
     resampled_rr_intervals = interpolated_rr_intervals(fixed_times)
-    frequencies: NDArray[float] = np.fft.fftfreq(num_samples, d=resampling_period)
+    frequencies: NDArray[float] = np.fft.fftfreq(
+        num_samples, d=resampling_period)
     non_negative_frequency_index: NDArray[bool] = frequencies >= 0
 
     frequencies = frequencies[non_negative_frequency_index]
@@ -57,8 +60,8 @@ def _get_lf_hf(
         lf_integrated = -1
     if not end_index <= boundary_index:
         hf_integrated = integrate.simps(
-            powers[boundary_index : end_index + 1],
-            frequencies[boundary_index : end_index + 1],
+            powers[boundary_index: end_index + 1],
+            frequencies[boundary_index: end_index + 1],
         )
     else:
         hf_integrated = -1
@@ -109,7 +112,8 @@ def get_report(beats: list[Beat]) -> str:
                 continue
             if index + 1 < len_my_beats and beats[index + 1].label is Label.房性早搏:
                 apb_probe = 2
-                apb_short_array_list = [beat.position, beats[index + 1].position]
+                apb_short_array_list = [
+                    beat.position, beats[index + 1].position]
                 while True:
                     if (
                         index + apb_probe < len_my_beats
@@ -151,7 +155,8 @@ def get_report(beats: list[Beat]) -> str:
                 continue
             if index + 1 < len_my_beats and beats[index + 1].label is Label.室性早搏:
                 vpb_probe = 2
-                vpb_short_array_list = [beat.position, beats[index + 1].position]
+                vpb_short_array_list = [
+                    beat.position, beats[index + 1].position]
                 while True:
                     if (
                         index + vpb_probe < len_my_beats
@@ -203,7 +208,8 @@ def get_report(beats: list[Beat]) -> str:
                 n_time.append(np.array(n_continuous_beats) / fs)
                 n_continuous_diff = np.diff(np.array(n_continuous_beats))
                 for i, diff in enumerate(n_continuous_diff):
-                    n_diff_flatten_with_r_peak.append([n_continuous_beats[i + 1], diff])
+                    n_diff_flatten_with_r_peak.append(
+                        [n_continuous_beats[i + 1], diff])
                     if diff > 2 * fs:
                         n_stop_beats.append([n_continuous_beats[i + 1], diff])
                 n_diff.append(n_continuous_diff)
@@ -241,7 +247,9 @@ def get_report(beats: list[Beat]) -> str:
                 continue
             vf_probe = index
             while (
-                vf_probe + 1 < len_my_beats and beats[vf_probe + 1].label is Label.室扑室颤
+                vf_probe +
+                    1 < len_my_beats and beats[vf_probe +
+                                               1].label is Label.室扑室颤
             ):
                 vf_probe += 1
             vf_time = int((beats[vf_probe].position - beat.position) / fs)
@@ -297,7 +305,8 @@ def get_report(beats: list[Beat]) -> str:
                 n_stop_max = beats[1]
                 n_stop_index = beats[0]
         n_stop_max_seconds = n_stop_max / fs
-        n_stop_max_h, n_stop_max_m, n_stop_max_s = _sample_to_time(n_stop_index)
+        n_stop_max_h, n_stop_max_m, n_stop_max_s = _sample_to_time(
+            n_stop_index)
         buffer.append(
             "    发生了{}次窦性停搏,最长的一次为：{:.1f}s，发生于:{}h-{}m-{}s\n".format(
                 len(n_stop_beats),
@@ -357,7 +366,8 @@ def get_report(beats: list[Beat]) -> str:
                     if 0.2 * fs < diff < apb_short_array_min_diff:
                         apb_short_array_min_index = index
                         apb_short_array_min_diff = diff
-            apb_short_array_ventricular_max_rate = 60 / (apb_short_array_min_diff / fs)
+            apb_short_array_ventricular_max_rate = 60 / \
+                (apb_short_array_min_diff / fs)
             apb_shor_array_h, apb_shor_array_m, apb_shor_array_s = _sample_to_time(
                 apb_short_array[apb_short_array_min_index][0]
             )
@@ -365,7 +375,8 @@ def get_report(beats: list[Beat]) -> str:
                 "其中，短阵房速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".format(
                     int(apb_short_array_ventricular_max_rate),
                     len(apb_short_array[apb_short_array_min_index]),
-                    int(apb_short_array[apb_short_array_min_index][0] * 250 / fs),
+                    int(apb_short_array[apb_short_array_min_index]
+                        [0] * 250 / fs),
                     apb_shor_array_h,
                     apb_shor_array_m,
                     apb_shor_array_s,
@@ -395,7 +406,8 @@ def get_report(beats: list[Beat]) -> str:
                     if diff < vpb_short_array_min_diff:
                         vpb_short_array_min_index = index
                         vpb_short_array_min_diff = diff
-            vpb_short_array_ventricular_max_rate = 60 / (vpb_short_array_min_diff / fs)
+            vpb_short_array_ventricular_max_rate = 60 / \
+                (vpb_short_array_min_diff / fs)
             vpb_shor_array_h, vpb_shor_array_m, vpb_shor_array_s = _sample_to_time(
                 vpb_short_array[vpb_short_array_min_index][0]
             )
@@ -403,7 +415,8 @@ def get_report(beats: list[Beat]) -> str:
                 "其中，短阵室速最快心室率为：{},由{}个QRS波组成,发生于：{}(采样点)/{}h-{}m-{}s(时间)\n".format(
                     int(vpb_short_array_ventricular_max_rate),
                     len(vpb_short_array[vpb_short_array_min_index]),
-                    int(vpb_short_array[vpb_short_array_min_index][0] * 250 / fs),
+                    int(vpb_short_array[vpb_short_array_min_index]
+                        [0] * 250 / fs),
                     vpb_shor_array_h,
                     vpb_shor_array_m,
                     vpb_shor_array_s,
