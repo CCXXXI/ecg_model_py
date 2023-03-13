@@ -16,6 +16,8 @@ def infer(data: NDArray[float], ori_fs: int) -> tuple[list[Beat], str]:
 
 
 def main() -> None:
+    # The model output of "lead I.txt" seems incorrect.
+    # See https://github.com/CCXXXI/ecg_models/commit/eb5904809e087ac575d41d9f5fe9d8f8ee044aa9.
     input_path = "../assets/ecg_data/assets/lead II.txt"
 
     set_models_path("../assets/ecg_models/models/")
