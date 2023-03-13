@@ -4,8 +4,9 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy import integrate
 from scipy.interpolate import interp1d
-
-from utils import Label, Beat, fs
+from utils import Beat
+from utils import fs
+from utils import Label
 
 
 def _sample_to_time(position: int) -> tuple[int, int, int]:
@@ -484,6 +485,6 @@ def get_report(beats: list[Beat]) -> str:
     buffer.append("    RMSSD:{:.2f}ms\n".format(rmssd))
     buffer.append("    PNN50:{:.2f}%\n".format(pnn50 * 100))
     buffer.append("    lf:{}".format(int(lf)))
-    buffer.append("    lf/hf:{}".format(lf / hf))
+    buffer.append("    hf:{}".format(hf))
 
     return "".join(buffer)
