@@ -2,7 +2,8 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from steps import get_report, get_checked_beats, get_labelled_beats, get_r_peaks
+from steps import (get_checked_beats, get_labelled_beats, get_r_peaks,
+                   get_report)
 from utils import Beat, set_models_path
 
 

@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from scipy import integrate
 from scipy.interpolate import interp1d
 
-from utils import Label, Beat, fs
+from utils import Beat, Label, fs
 
 
 def _sample_to_time(position: int) -> tuple[int, int, int]:
