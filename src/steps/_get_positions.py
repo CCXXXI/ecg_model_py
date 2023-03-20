@@ -73,51 +73,6 @@ def _u_net_r_peak(x: NDArray[bool]) -> list[int]:
     return r_list
 
 
-def _r_detection_u_net(data: NDArray[float], n: NDArray[bool]) -> list[int]:
-    """获取R波波峰"""
-    x: NDArray[float] = data.copy()
-    n_: NDArray[bool] = np.array(n)
-    n_ = np.insert(n_, len(x), False)
-    n_ = np.insert(n_, 0, False)
-    r_start: list[int] = []
-    r_end: list[int] = []
-    r: list[int] = []
-    for i in range(len(x)):
-        idx_ = i + 1
-        if n_[idx_] == 1 and (n_[idx_ - 1] == 1 or n_[idx_ + 1] == 1):
-            if n_[idx_ - 1] == 0:
-                r_start.append(i)
-            elif n_[idx_ + 1] == 0:
-                r_end.append(i)
-
-    assert len(r_start) == len(r_end), "R 波起点和终点数目不同"
-
-    for i in range(len(x)):
-        x[i] = (
-            x[max(i - 2, 0)]
-            + x[max(i - 1, 0)]
-            + x[i]
-            + x[min(i + 1, len(x) - 1)]
-            + x[min(i + 2, len(x) - 1)]
-        ) / 5
-    for i in range(len(r_start)):
-        r_candidate: list[int] = []
-        peak_candidate: list[float] = []
-
-        for idx in range(r_start[i], r_end[i]):
-            if idx <= 0 or idx >= len(x) - 1:
-                continue
-
-            if x[idx] >= x[idx - 1] and x[idx] >= x[idx + 1]:
-                r_candidate.append(idx)
-                peak_candidate.append(x[idx])
-        if len(r_candidate) == 0:
-            r.append(r_start[i] + np.argmax(x[r_start[i] : r_end[i]]))
-        else:
-            r.append(r_candidate[np.argmax(peak_candidate)])
-    return r
-
-
 def _output_sliding_voting_v2(
     ori_output: NDArray[int],
 ) -> NDArray[int]:
@@ -140,14 +95,13 @@ def _output_sliding_voting_v2(
     return output
 
 
-def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]]:
-    """提取R波切分心拍"""
+def get_positions(data: NDArray[float], ori_fs: int) -> list[int]:
+    """切分心拍"""
     data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net = 10 * 60 * fs
 
     len_data: int = data.shape[0]
     beats: list[int] = []
-    r_peaks: list[int] = []
     cur_s = 0
     while cur_s < len_data:
         if cur_s + len_u_net <= len_data:
@@ -161,10 +115,8 @@ def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]
         p, n, t, r = _u_net_peak(data[cur_s:now_s])
 
         beat_list: list[int] = _u_net_r_peak(n)
-        r_list: list[int] = _r_detection_u_net(data[cur_s:now_s], n)
         # 记录QRS波中点，以该点标识心拍     之后两边扩展
         beat_list: NDArray[int] = np.array(beat_list)
-        r_list: NDArray[int] = np.array(r_list)
 
         append_start = int(0.5 * 60 * fs)
         append_end = int(9.5 * 60 * fs)
@@ -174,10 +126,7 @@ def get_r_peaks(data: NDArray[float], ori_fs: int) -> tuple[list[int], list[int]
         for beat in beat_list:
             if append_start < beat <= append_end:
                 beats.append(beat + cur_s)
-        for r in r_list:
-            if append_start < r <= append_end:
-                r_peaks.append(r + cur_s)
 
         cur_s += 9 * 60 * fs
 
-    return beats, r_peaks
+    return beats

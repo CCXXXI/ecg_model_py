@@ -23,7 +23,6 @@ class Label(Enum):
 @dataclass
 class Beat:
     position: int
-    r_peak: int
     label: Label = Label.未知
 
 
