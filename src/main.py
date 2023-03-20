@@ -2,7 +2,6 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from steps import get_checked_beats
 from steps import get_labelled_beats
 from steps import get_r_peaks
 from utils import Beat
@@ -10,9 +9,14 @@ from utils import set_models_path
 
 
 def infer(data: NDArray[float], ori_fs: int) -> list[Beat]:
-    beats, r_peaks = get_r_peaks(data, ori_fs)
-    checked_beats = get_checked_beats(beats, r_peaks)
-    labelled_beats = get_labelled_beats(data, checked_beats, ori_fs)
+    positions, r_peaks = get_r_peaks(data, ori_fs)
+
+    beats = [
+        Beat(position=position, r_peak=r_peak)
+        for position, r_peak in zip(positions, r_peaks)
+    ]
+
+    labelled_beats = get_labelled_beats(data, beats, ori_fs)
 
     return labelled_beats
 

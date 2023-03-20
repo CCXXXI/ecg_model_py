@@ -24,7 +24,6 @@ class Label(Enum):
 class Beat:
     position: int
     r_peak: int
-    is_new: bool
     label: Label = Label.未知
 
 
