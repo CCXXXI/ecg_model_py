@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
 
-from utils import Label, Beat, fs, load_model
+from utils import Beat, Label, fs, load_model
 
 
 def _bsw(data: NDArray[float], band_hz: float) -> NDArray[float]:
