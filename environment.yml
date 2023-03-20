@@ -1,6 +1,7 @@
 # mamba env create -f environment.yml --force
 name: pytorch
-channels: [ conda-forge, pytorch ]
+channels: [conda-forge, pytorch]
 dependencies:
   - pytorch
   - scipy
+  - pytest-cov

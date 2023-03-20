@@ -1,12 +1,14 @@
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import Final
 
 import torch
-from enum import Enum
 
 
+# Use IntEnum to make it json-serializable.
+# See: https://stackoverflow.com/a/24482131/13805358
 # noinspection NonAsciiCharacters
-class Label(Enum):
+class Label(IntEnum):
     未知 = -1
     窦性心律 = 0
     房性早搏 = 1
@@ -23,13 +25,10 @@ class Label(Enum):
 @dataclass
 class Beat:
     position: int
-    r_peak: int
-    is_new: bool
     label: Label = Label.未知
 
 
 fs: Final[int] = 240
-
 
 _models_path: str
 

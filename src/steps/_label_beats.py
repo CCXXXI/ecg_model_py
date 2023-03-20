@@ -3,8 +3,10 @@ import torch
 from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
-
-from utils import Label, Beat, fs, load_model
+from utils import Beat
+from utils import fs
+from utils import Label
+from utils import load_model
 
 
 def _bsw(data: NDArray[float], band_hz: float) -> NDArray[float]:
@@ -21,9 +23,7 @@ def _transform(sig: NDArray[float]) -> Tensor:
     return torch.tensor(sig.copy(), dtype=torch.float)
 
 
-def get_labelled_beats(
-    data: NDArray[float], beats: list[Beat], ori_fs: int
-) -> list[Beat]:
+def label_beats(data: NDArray[float], beats: list[Beat], ori_fs: int) -> list[Beat]:
     """进行预测，获取标签"""
     half_len = int(0.75 * fs)
 

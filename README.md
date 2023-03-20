@@ -7,5 +7,6 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org)
 [![CodeFactor](https://www.codefactor.io/repository/github/ccxxxi/ecg_model_py/badge)](https://www.codefactor.io/repository/github/ccxxxi/ecg_model_py)
+[![codecov](https://codecov.io/gh/CCXXXI/ecg_model_py/branch/main/graph/badge.svg?token=yrtDCQKo9m)](https://codecov.io/gh/CCXXXI/ecg_model_py)
 
 Python version of [CCXXXI/ecg_model_cpp](https://github.com/CCXXXI/ecg_model_cpp).
