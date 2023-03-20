@@ -33,45 +33,43 @@ def _u_net_peak(data: NDArray[float]) -> NDArray[bool]:
     out_pred = np.reshape(out_pred, len(x))
     output = _output_sliding_voting_v2(out_pred)
 
-    qrs: NDArray[bool] = output == 1
+    is_qrs: NDArray[bool] = output == 1
 
-    return qrs
+    return is_qrs
 
 
-def _u_net_r_peak(qrs: NDArray[bool]) -> list[int]:
+def _u_net_r_peak(is_qrs: NDArray[bool]) -> list[int]:
     """获取心拍"""
+    origin_len = len(is_qrs)
 
-    qrs: NDArray[bool] = np.array(qrs)
-    qrs = np.insert(qrs, len(qrs), False)
-    qrs = np.insert(qrs, 0, False)
+    is_qrs: NDArray[bool] = np.array(is_qrs)
+    is_qrs = np.insert(is_qrs, origin_len, False)
+    is_qrs = np.insert(is_qrs, 0, False)
 
-    y: NDArray[bool] = np.zeros_like(qrs)
-    for i in range(len(qrs)):
-        idx_ = i + 1
-        if qrs[idx_] == 1 and (qrs[idx_ - 1] == 1 or qrs[idx_ + 1] == 1):
-            if qrs[idx_ - 1] == 0 or qrs[idx_ + 1] == 0:
-                y[i] = 1
-            else:
-                y[i] = 0
+    y: NDArray[bool] = np.zeros_like(is_qrs)
+    for pre in range(origin_len):
+        cur = pre + 1
+        nxt = cur + 1
+        if is_qrs[cur] and (is_qrs[pre] or is_qrs[nxt]):
+            y[pre] = not is_qrs[pre] or not is_qrs[nxt]
 
     start = 0
     flag = False
     r_list: list[int] = []
-    for i in range(len(qrs)):
-        if y[i] == 1 and not flag:
+    for i in range(origin_len):
+        if not y[i]:
+            continue
+        if flag:
+            flag = False
+            r_list.append(start + math.floor((i - start) / 2))
+        else:
             flag = True
             start = i
-        elif y[i] == 1 and flag:
-            flag = False
-            end = i
 
-            r_list.append(start + math.floor((end - start) / 2))
     return r_list
 
 
-def _output_sliding_voting_v2(
-    ori_output: NDArray[int],
-) -> NDArray[int]:
+def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
     window: Final[int] = 9
 
     output: NDArray[int] = np.array(ori_output)
@@ -104,10 +102,10 @@ def get_positions(data: NDArray[float], ori_fs: int) -> list[int]:
             now_s: int = cur_s + len_u_net
         else:
             break
-        qrs: NDArray[bool]
-        qrs = _u_net_peak(data[cur_s:now_s])
+        is_qrs: NDArray[bool]
+        is_qrs = _u_net_peak(data[cur_s:now_s])
 
-        r_list: list[int] = _u_net_r_peak(qrs)
+        r_list: list[int] = _u_net_r_peak(is_qrs)
         # 记录QRS波中点，以该点标识心拍     之后两边扩展
         r_list: NDArray[int] = np.array(r_list)
 
