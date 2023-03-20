@@ -4,3 +4,4 @@ channels: [ conda-forge, pytorch ]
 dependencies:
   - pytorch
   - scipy
+  - pytest-cov
