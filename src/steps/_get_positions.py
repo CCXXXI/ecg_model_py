@@ -11,9 +11,8 @@ from torch.nn.functional import softmax
 from utils import fs, load_model
 
 
-def _u_net_peak(
-    data: NDArray[float],
-) -> tuple[NDArray[bool], NDArray[bool], NDArray[bool], NDArray[bool]]:
+def _u_net_peak(data: NDArray[float]) -> NDArray[bool]:
+    """QRS 提取"""
     # 提取U-net波群信息
     x: NDArray[float] = data.copy()
     wn1 = 1 / fs
@@ -34,26 +33,23 @@ def _u_net_peak(
     out_pred = np.reshape(out_pred, len(x))
     output = _output_sliding_voting_v2(out_pred)
 
-    p: NDArray[bool] = output == 0  # P波
-    n: NDArray[bool] = output == 1  # QRS
-    t: NDArray[bool] = output == 2  # t波
-    r: NDArray[bool] = output == 3  # 其他
+    qrs: NDArray[bool] = output == 1
 
-    return p, n, t, r
+    return qrs
 
 
-def _u_net_r_peak(x: NDArray[bool]) -> list[int]:
+def _u_net_r_peak(qrs: NDArray[bool]) -> list[int]:
     """获取心拍"""
 
-    x_: NDArray[bool] = np.array(x)
-    x_ = np.insert(x_, len(x), False)
-    x_ = np.insert(x_, 0, False)
+    qrs: NDArray[bool] = np.array(qrs)
+    qrs = np.insert(qrs, len(qrs), False)
+    qrs = np.insert(qrs, 0, False)
 
-    y: NDArray[bool] = np.zeros_like(x)
-    for i in range(len(x)):
+    y: NDArray[bool] = np.zeros_like(qrs)
+    for i in range(len(qrs)):
         idx_ = i + 1
-        if x_[idx_] == 1 and (x_[idx_ - 1] == 1 or x_[idx_ + 1] == 1):
-            if x_[idx_ - 1] == 0 or x_[idx_ + 1] == 0:
+        if qrs[idx_] == 1 and (qrs[idx_ - 1] == 1 or qrs[idx_ + 1] == 1):
+            if qrs[idx_ - 1] == 0 or qrs[idx_ + 1] == 0:
                 y[i] = 1
             else:
                 y[i] = 0
@@ -61,7 +57,7 @@ def _u_net_r_peak(x: NDArray[bool]) -> list[int]:
     start = 0
     flag = False
     r_list: list[int] = []
-    for i in range(len(x)):
+    for i in range(len(qrs)):
         if y[i] == 1 and not flag:
             flag = True
             start = i
@@ -108,22 +104,19 @@ def get_positions(data: NDArray[float], ori_fs: int) -> list[int]:
             now_s: int = cur_s + len_u_net
         else:
             break
-        p: NDArray[bool]
-        n: NDArray[bool]
-        t: NDArray[bool]
-        r: NDArray[bool]
-        p, n, t, r = _u_net_peak(data[cur_s:now_s])
+        qrs: NDArray[bool]
+        qrs = _u_net_peak(data[cur_s:now_s])
 
-        beat_list: list[int] = _u_net_r_peak(n)
+        r_list: list[int] = _u_net_r_peak(qrs)
         # 记录QRS波中点，以该点标识心拍     之后两边扩展
-        beat_list: NDArray[int] = np.array(beat_list)
+        r_list: NDArray[int] = np.array(r_list)
 
         append_start = int(0.5 * 60 * fs)
         append_end = int(9.5 * 60 * fs)
         if cur_s == 0:
             append_start = 0
 
-        for beat in beat_list:
+        for beat in r_list:
             if append_start < beat <= append_end:
                 beats.append(beat + cur_s)
 
