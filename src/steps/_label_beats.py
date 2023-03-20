@@ -21,9 +21,7 @@ def _transform(sig: NDArray[float]) -> Tensor:
     return torch.tensor(sig.copy(), dtype=torch.float)
 
 
-def get_labelled_beats(
-    data: NDArray[float], beats: list[Beat], ori_fs: int
-) -> list[Beat]:
+def label_beats(data: NDArray[float], beats: list[Beat], ori_fs: int) -> list[Beat]:
     """进行预测，获取标签"""
     half_len = int(0.75 * fs)
 

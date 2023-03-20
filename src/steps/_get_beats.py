@@ -8,7 +8,7 @@ from scipy import signal
 from torch import Tensor
 from torch.nn.functional import softmax
 
-from utils import fs, load_model
+from utils import fs, load_model, Beat
 
 
 def _u_net_peak(data: NDArray[float]) -> NDArray[bool]:
@@ -89,13 +89,13 @@ def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
     return output
 
 
-def get_positions(data: NDArray[float], ori_fs: int) -> list[int]:
+def get_beats(data: NDArray[float], ori_fs: int) -> list[Beat]:
     """切分心拍"""
     data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net = 10 * 60 * fs
 
     len_data: int = data.shape[0]
-    beats: list[int] = []
+    beats: list[Beat] = []
     cur_s = 0
     while cur_s < len_data:
         if cur_s + len_u_net <= len_data:
@@ -116,7 +116,7 @@ def get_positions(data: NDArray[float], ori_fs: int) -> list[int]:
 
         for beat in r_list:
             if append_start < beat <= append_end:
-                beats.append(beat + cur_s)
+                beats.append(Beat(beat + cur_s))
 
         cur_s += 9 * 60 * fs
 

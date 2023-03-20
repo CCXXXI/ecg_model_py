@@ -2,19 +2,15 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from steps import get_labelled_beats
-from steps import get_positions
+from steps import get_beats
+from steps import label_beats
 from utils import Beat
 from utils import set_models_path
 
 
 def infer(data: NDArray[float], ori_fs: int) -> list[Beat]:
-    positions = get_positions(data, ori_fs)
-
-    beats = [Beat(position=position) for position in positions]
-
-    labelled_beats = get_labelled_beats(data, beats, ori_fs)
-
+    beats = get_beats(data, ori_fs)
+    labelled_beats = label_beats(data, beats, ori_fs)
     return labelled_beats
 
 
