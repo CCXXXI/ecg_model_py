@@ -27,11 +27,13 @@ def main() -> None:
         beats = infer(np.loadtxt(input_path), 125)
 
     # human-readable output
-    with open("../assets/ecg_models/output/beats.txt", "w", encoding="utf-8") as f:
+    with open("../assets/ecg_models/output/beats.txt", "w",
+              encoding="utf-8") as f:
         print(*beats, sep="\n", file=f)
 
     # machine-readable output
-    with open("../assets/ecg_models/output/beats.json", "w", encoding="utf-8") as f:
+    with open("../assets/ecg_models/output/beats.json", "w",
+              encoding="utf-8") as f:
         dump([asdict(b) for b in beats], f, indent=2)
 
 
