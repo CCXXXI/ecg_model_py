@@ -116,7 +116,9 @@ def get_beats(data: NDArray[float], ori_fs: int) -> list[Beat]:
 
         for beat in r_list:
             if append_start < beat <= append_end:
-                beats.append(Beat(beat + cur_s))
+                # np.int32 -> int
+                # to make it json serializable
+                beats.append(Beat(int(beat + cur_s)))
 
         cur_s += 9 * 60 * fs
 

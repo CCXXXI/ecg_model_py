@@ -1,3 +1,6 @@
+from dataclasses import asdict
+from json import dump
+
 import numpy as np
 import torch
 from numpy.typing import NDArray
@@ -22,12 +25,15 @@ def main() -> None:
     set_models_path("../assets/ecg_models/models/")
 
     with torch.no_grad():
-        labelled_beats = infer(np.loadtxt(input_path), 125)
+        beats = infer(np.loadtxt(input_path), 125)
 
-    with open(
-        "../assets/ecg_models/output/labelled_beats.txt", "w", encoding="utf-8"
-    ) as f:
-        print(*labelled_beats, sep="\n", file=f)
+    # human-readable output
+    with open("../assets/ecg_models/output/beats.txt", "w", encoding="utf-8") as f:
+        print(*beats, sep="\n", file=f)
+
+    # machine-readable output
+    with open("../assets/ecg_models/output/beats.json", "w", encoding="utf-8") as f:
+        dump([asdict(b) for b in beats], f, ensure_ascii=False, indent=4)
 
 
 if __name__ == "__main__":
