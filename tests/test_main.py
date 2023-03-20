@@ -3,7 +3,6 @@ from json import load
 
 import numpy as np
 import torch
-
 from main import infer
 from utils import set_models_path
 
