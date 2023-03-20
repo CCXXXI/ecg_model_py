@@ -33,7 +33,7 @@ def main() -> None:
 
     # machine-readable output
     with open("../assets/ecg_models/output/beats.json", "w", encoding="utf-8") as f:
-        dump([asdict(b) for b in beats], f, ensure_ascii=False, indent=4)
+        dump([asdict(b) for b in beats], f, indent=4)
 
 
 if __name__ == "__main__":
