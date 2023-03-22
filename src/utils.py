@@ -9,7 +9,6 @@ import torch
 # See: https://stackoverflow.com/a/24482131/13805358
 # noinspection NonAsciiCharacters
 class Label(IntEnum):
-    未知 = -1
     窦性心律 = 0
     房性早搏 = 1
     心房扑动 = 2
@@ -20,6 +19,7 @@ class Label(IntEnum):
     室扑室颤 = 7
     房室传导阻滞 = 8
     噪声 = 9
+    未知 = 10
 
 
 @dataclass
