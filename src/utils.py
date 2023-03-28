@@ -25,7 +25,7 @@ class Label(IntEnum):
 @dataclass
 class Beat:
     position: int
-    label: Label = Label.未知
+    label: Label
 
 
 fs: Final[int] = 240
