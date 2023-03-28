@@ -25,7 +25,7 @@ def get_input() -> NDArray[float]:
     return np.array([p["leadII"] for p in points])
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     set_models_path("../assets/ecg_models/models/")
 
     with torch.no_grad():
@@ -40,5 +40,5 @@ def main() -> None:
         dump([b.to_dict() for b in beats], f, indent=2)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
