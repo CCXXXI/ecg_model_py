@@ -2,7 +2,7 @@ from json import load
 
 import torch
 
-from main import infer, get_input
+from main import get_input, infer
 from utils import set_models_path
 
 
