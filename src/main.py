@@ -1,11 +1,13 @@
-from json import dump, load
+from json import dump
+from json import load
 
 import numpy as np
 import torch
 from numpy.typing import NDArray
-
-from steps import get_beats, label_beats
-from utils import Beat, set_models_path
+from steps import get_beats
+from steps import label_beats
+from utils import Beat
+from utils import set_models_path
 
 
 def infer(data: NDArray[float], ori_fs: int) -> list[Beat]:

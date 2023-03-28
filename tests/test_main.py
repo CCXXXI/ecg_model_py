@@ -1,8 +1,8 @@
 from json import load
 
 import torch
-
-from main import get_input, infer
+from main import get_input
+from main import infer
 from utils import set_models_path
 
 
