@@ -1,5 +1,5 @@
-from dataclasses import asdict
 from json import dump
+from json import load
 
 import numpy as np
 import torch
@@ -16,15 +16,19 @@ def infer(data: NDArray[float], ori_fs: int) -> list[Beat]:
     return labelled_beats
 
 
-def main() -> None:
-    # The model output of "lead I.txt" seems incorrect.
+def get_input() -> NDArray[float]:
+    with open("../assets/ecg_data/assets/data.json") as f:
+        points = load(f)
+    # The model output of lead-I seems incorrect.
     # See https://github.com/CCXXXI/ecg_models/commit/eb5904809e087ac575d41d9f5fe9d8f8ee044aa9.
-    input_path = "../assets/ecg_data/assets/lead II.txt"
+    return np.array([p["leadII"] for p in points])
 
+
+def main() -> None:  # pragma: no cover
     set_models_path("../assets/ecg_models/models/")
 
     with torch.no_grad():
-        beats = infer(np.loadtxt(input_path), 125)
+        beats = infer(get_input(), 125)
 
     # human-readable output
     with open("../assets/ecg_models/output/beats.txt", "w", encoding="utf-8") as f:
@@ -32,8 +36,8 @@ def main() -> None:
 
     # machine-readable output
     with open("../assets/ecg_models/output/beats.json", "w", encoding="utf-8") as f:
-        dump([asdict(b) for b in beats], f, indent=2)
+        dump([b.to_dict() for b in beats], f, indent=2)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

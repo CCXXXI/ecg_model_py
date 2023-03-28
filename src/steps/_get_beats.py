@@ -9,6 +9,7 @@ from torch import Tensor
 from torch.nn.functional import softmax
 from utils import Beat
 from utils import fs
+from utils import Label
 from utils import load_model
 
 
@@ -119,7 +120,7 @@ def get_beats(data: NDArray[float], ori_fs: int) -> list[Beat]:
             if append_start < beat <= append_end:
                 # np.int32 -> int
                 # to make it json serializable
-                beats.append(Beat(int(beat + cur_s)))
+                beats.append(Beat(int(beat + cur_s), label=Label.未知))
 
         cur_s += 9 * 60 * fs
 
