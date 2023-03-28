@@ -1,14 +1,12 @@
 from dataclasses import dataclass
-from enum import IntEnum
+from enum import Enum
 from typing import Final
 
 import torch
 
 
-# Use IntEnum to make it json-serializable.
-# See: https://stackoverflow.com/a/24482131/13805358
 # noinspection NonAsciiCharacters
-class Label(IntEnum):
+class Label(Enum):
     窦性心律 = 0
     房性早搏 = 1
     心房扑动 = 2
@@ -26,6 +24,12 @@ class Label(IntEnum):
 class Beat:
     position: int
     label: Label
+
+    def to_dict(self):
+        return {
+            "millisecondsSinceStart": self.position * 1000 // fs,
+            "label": self.label.value,
+        }
 
 
 fs: Final[int] = 240

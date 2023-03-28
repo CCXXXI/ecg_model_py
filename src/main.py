@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from json import dump
 from json import load
 
@@ -38,7 +37,7 @@ def main() -> None:
 
     # machine-readable output
     with open("../assets/ecg_models/output/beats.json", "w", encoding="utf-8") as f:
-        dump([asdict(b) for b in beats], f, indent=2)
+        dump([b.to_dict() for b in beats], f, indent=2)
 
 
 if __name__ == "__main__":

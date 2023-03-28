@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from json import load
 
 import torch
@@ -14,7 +13,7 @@ def test_infer():
     # get actual
     with torch.no_grad():
         beats = infer(get_input(), 125)
-    actual = [asdict(b) for b in beats]
+    actual = [b.to_dict() for b in beats]
 
     # get expected
     with open("../assets/ecg_models/output/beats.json", encoding="utf-8") as f:
