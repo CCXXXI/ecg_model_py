@@ -31,11 +31,13 @@ def main() -> None:  # pragma: no cover
         beats = infer(get_input(), 125)
 
     # human-readable output
-    with open("../assets/ecg_models/output/beats.txt", "w", encoding="utf-8") as f:
+    with open("../assets/ecg_models/output/beats.txt", "w",
+              encoding="utf-8") as f:
         print(*beats, sep="\n", file=f)
 
     # machine-readable output
-    with open("../assets/ecg_models/output/beats.json", "w", encoding="utf-8") as f:
+    with open("../assets/ecg_models/output/beats.json", "w",
+              encoding="utf-8") as f:
         dump([b.to_dict() for b in beats], f, indent=2)
 
 
