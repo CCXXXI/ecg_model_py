@@ -8,10 +8,7 @@ from scipy import signal
 from torch import Tensor
 from torch.nn.functional import softmax
 
-from utils import Beat
-from utils import Label
-from utils import fs
-from utils import load_model
+from utils import Beat, Label, fs, load_model
 
 
 def _u_net_peak(data: NDArray[float]) -> NDArray[bool]:
