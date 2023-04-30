@@ -36,7 +36,7 @@ def label_beats(data: NDArray[float], beats: list[Beat], ori_fs: int) -> list[Be
 
     for idx, beat in enumerate(beats):
         if beat.position < half_len or beat.position >= data.shape[0] - half_len:
-            beat.label = Label.未知
+            beat.label = Label.unknown
             continue
 
         x: NDArray[float] = data[beat.position - half_len : beat.position + half_len]
