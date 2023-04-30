@@ -1,6 +1,6 @@
 from pytest import mark
 
-from utils import set_models_path, load_model
+from utils import load_model, set_models_path
 
 
 @mark.parametrize("filename", ["u_net.pt", "res_net.pt"])
