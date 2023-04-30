@@ -7,4 +7,4 @@ from utils import set_models_path
 def test_load_model(filename: str):
     set_models_path("../assets/ecg_models/models/")
     model = load_model(filename)
-    assert model is not None
+    assert not model.training
