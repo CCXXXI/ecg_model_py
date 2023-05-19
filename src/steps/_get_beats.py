@@ -7,9 +7,10 @@ from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
 from torch.nn.functional import softmax
+
 from utils import Beat
-from utils import fs
 from utils import Label
+from utils import fs
 from utils import load_model
 
 
@@ -93,10 +94,10 @@ def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
 
 def get_beats(data: NDArray[float], ori_fs: int) -> list[Beat]:
     """切分心拍"""
-    data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
+    data_resampled: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net = 10 * 60 * fs
 
-    len_data: int = data.shape[0]
+    len_data: int = data_resampled.shape[0]
     beats: list[Beat] = []
     cur_s = 0
     while cur_s < len_data:
@@ -105,7 +106,7 @@ def get_beats(data: NDArray[float], ori_fs: int) -> list[Beat]:
         else:
             break
         is_qrs: NDArray[bool]
-        is_qrs = _u_net_peak(data[cur_s:now_s])
+        is_qrs = _u_net_peak(data_resampled[cur_s:now_s])
 
         r_list: list[int] = _u_net_r_peak(is_qrs)
         # 记录QRS波中点，以该点标识心拍     之后两边扩展
