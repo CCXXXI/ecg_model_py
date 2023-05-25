@@ -14,6 +14,26 @@ from utils import fs
 from utils import load_model
 
 
+def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
+    window: Final[int] = 9
+
+    output: NDArray[int] = np.array(ori_output)
+    n = len(output)
+    half_window = int(window / 2)
+    cnt: NDArray[int] = np.zeros((4,), dtype=int)
+    l_index = 0
+    r_index = -1
+    for i in range(n):
+        if r_index - l_index + 1 == window and half_window < i < n - half_window:
+            cnt[ori_output[l_index]] -= 1
+            l_index += 1
+        while r_index - l_index + 1 < window and r_index + 1 < n:
+            r_index += 1
+            cnt[ori_output[r_index]] += 1
+        output[i] = np.argmax(cnt)
+    return output
+
+
 def _u_net_peak(data: NDArray[float]) -> NDArray[bool]:
     """QRS 提取"""
     # 提取U-net波群信息
@@ -70,26 +90,6 @@ def _u_net_r_peak(is_qrs: NDArray[bool]) -> list[int]:
             start = i
 
     return r_list
-
-
-def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
-    window: Final[int] = 9
-
-    output: NDArray[int] = np.array(ori_output)
-    n = len(output)
-    half_window = int(window / 2)
-    cnt: NDArray[int] = np.zeros((4,), dtype=int)
-    l_index = 0
-    r_index = -1
-    for i in range(n):
-        if r_index - l_index + 1 == window and half_window < i < n - half_window:
-            cnt[ori_output[l_index]] -= 1
-            l_index += 1
-        while r_index - l_index + 1 < window and r_index + 1 < n:
-            r_index += 1
-            cnt[ori_output[r_index]] += 1
-        output[i] = np.argmax(cnt)
-    return output
 
 
 def get_beats(data: NDArray[float], ori_fs: int) -> list[Beat]:
