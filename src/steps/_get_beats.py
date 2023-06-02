@@ -49,7 +49,8 @@ def _u_net_peak(data: NDArray[float]) -> NDArray[bool]:
 
     model = load_model("u_net.pt")
     pred: Tensor = model(x_tensor)
-    out_pred: NDArray[int] = softmax(pred, 1).detach().cpu().numpy().argmax(axis=1)
+    out_pred: NDArray[int] = softmax(
+        pred, 1).detach().cpu().numpy().argmax(axis=1)
     out_pred = np.reshape(out_pred, len(x))
     output = _output_sliding_voting_v2(out_pred)
 
@@ -91,7 +92,8 @@ def _u_net_r_peak(is_qrs: NDArray[bool]) -> list[int]:
 
 def get_beats(data: NDArray[float], ori_fs: int) -> list[Beat]:
     """切分心拍"""
-    data_resampled: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
+    data_resampled: NDArray[float] = signal.resample(
+        data, len(data) * fs // ori_fs)
     len_u_net = 10 * 60 * fs
 
     len_data: int = data_resampled.shape[0]
