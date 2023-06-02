@@ -7,8 +7,10 @@ from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
 from torch.nn.functional import softmax
-
-from utils import Beat, Label, fs, load_model
+from utils import Beat
+from utils import fs
+from utils import Label
+from utils import load_model
 
 
 def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
