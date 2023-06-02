@@ -38,11 +38,8 @@ def _u_net_peak(data: NDArray[float]) -> NDArray[bool]:
     """QRS 提取"""
     # 提取U-net波群信息
     x: NDArray[float] = data.copy()
-    wn1 = 1 / fs
-    b: NDArray[float]
-    a: NDArray[float]
-    # noinspection PyTupleAssignmentBalance
-    b, a = signal.butter(1, wn1, btype="high")
+    b: NDArray[float] = np.array([0.99349748, -0.99349748])
+    a: NDArray[float] = np.array([1.0, -0.98699496])
     x = signal.filtfilt(b, a, x)
     # 标准化
     x = (x - np.mean(x)) / np.std(x)
