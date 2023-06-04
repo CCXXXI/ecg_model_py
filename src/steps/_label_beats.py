@@ -31,7 +31,8 @@ def label_beats(data: NDArray[float], beats: list[Beat], ori_fs: int) -> list[Be
             beat.label = Label.unknown
             continue
 
-        x: NDArray[float] = data[beat.position - half_len : beat.position + half_len]
+        x: NDArray[float] = data[beat.position -
+                                 half_len: beat.position + half_len]
         x = np.reshape(x, (1, half_len * 2))
         x = (x - np.mean(x)) / np.std(x)
         x = x.T
