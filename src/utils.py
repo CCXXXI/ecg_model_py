@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Final
 
+import numpy as np
 import torch
+from numpy.typing import NDArray
+from scipy import signal
 
 
 class Label(Enum):
@@ -66,3 +69,9 @@ def load_model(filename: str) -> torch.nn.Module:
     model = torch.jit.load(_models_path + filename)
     model.eval()
     return model
+
+
+def bsw(data: NDArray[float]) -> NDArray[float]:
+    b: NDArray[float] = np.array([0.99349748, -0.99349748])
+    a: NDArray[float] = np.array([1.0, -0.98699496])
+    return signal.filtfilt(b, a, data)

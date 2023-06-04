@@ -11,6 +11,7 @@ from utils import Beat
 from utils import fs
 from utils import Label
 from utils import load_model
+from utils import bsw
 
 
 def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
@@ -36,10 +37,7 @@ def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
 def _u_net_peak(data: NDArray[float]) -> NDArray[bool]:
     """QRS 提取"""
     # 提取U-net波群信息
-    x: NDArray[float] = data.copy()
-    b: NDArray[float] = np.array([0.99349748, -0.99349748])
-    a: NDArray[float] = np.array([1.0, -0.98699496])
-    x = signal.filtfilt(b, a, x)
+    x = bsw(data)
     # 标准化
     x = (x - np.mean(x)) / np.std(x)
     x_tensor: Tensor = torch.tensor(x)
