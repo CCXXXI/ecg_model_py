@@ -3,8 +3,11 @@ import torch
 from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
-
-from utils import Beat, Label, bsw, fs, load_model
+from utils import Beat
+from utils import bsw
+from utils import fs
+from utils import Label
+from utils import load_model
 
 
 def _transform(sig: NDArray[float]) -> Tensor:
