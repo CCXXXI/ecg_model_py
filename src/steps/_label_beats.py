@@ -4,10 +4,7 @@ from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
 
-from utils import Beat, bsw
-from utils import Label
-from utils import fs
-from utils import load_model
+from utils import Beat, Label, bsw, fs, load_model
 
 
 def _transform(sig: NDArray[float]) -> Tensor:
