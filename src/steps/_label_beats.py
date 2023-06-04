@@ -15,8 +15,7 @@ def _transform(sig: NDArray[float]) -> Tensor:
     return torch.tensor(sig.copy(), dtype=torch.float)
 
 
-def label_beats(data: NDArray[float], beats: list[Beat],
-                ori_fs: int) -> list[Beat]:
+def label_beats(data: NDArray[float], beats: list[Beat], ori_fs: int) -> list[Beat]:
     """进行预测，获取标签"""
     half_len = int(0.75 * fs)
 
@@ -28,13 +27,11 @@ def label_beats(data: NDArray[float], beats: list[Beat],
     input_beats: list[Beat] = []
 
     for idx, beat in enumerate(beats):
-        if beat.position < half_len or beat.position >= data.shape[
-                0] - half_len:
+        if beat.position < half_len or beat.position >= data.shape[0] - half_len:
             beat.label = Label.unknown
             continue
 
-        x: NDArray[float] = data[beat.position - half_len:beat.position +
-                                 half_len]
+        x: NDArray[float] = data[beat.position - half_len : beat.position + half_len]
         x = np.reshape(x, (1, half_len * 2))
         x = (x - np.mean(x)) / np.std(x)
         x = x.T
