@@ -4,18 +4,10 @@ from numpy.typing import NDArray
 from scipy import signal
 from torch import Tensor
 from utils import Beat
+from utils import bsw
 from utils import fs
 from utils import Label
 from utils import load_model
-
-
-def _bsw(data: NDArray[float], band_hz: float) -> NDArray[float]:
-    wn1 = 2 * band_hz / fs  # 只截取5hz以上的数据
-    b: NDArray[float]
-    a: NDArray[float]
-    # noinspection PyTupleAssignmentBalance
-    b, a = signal.butter(1, wn1, btype="high")
-    return signal.filtfilt(b, a, data)
 
 
 def _transform(sig: NDArray[float]) -> Tensor:
@@ -28,7 +20,7 @@ def label_beats(data: NDArray[float], beats: list[Beat], ori_fs: int) -> list[Be
     half_len = int(0.75 * fs)
 
     data = signal.resample(data, len(data) * fs // ori_fs)
-    data = _bsw(data, band_hz=0.5)
+    data = bsw(data)
 
     batch_size = 64
     input_tensor: list[Tensor] = []

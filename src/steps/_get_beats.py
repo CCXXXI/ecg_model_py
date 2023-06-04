@@ -8,21 +8,36 @@ from scipy import signal
 from torch import Tensor
 from torch.nn.functional import softmax
 from utils import Beat
+from utils import bsw
 from utils import fs
 from utils import Label
 from utils import load_model
 
 
+def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
+    window: Final[int] = 9
+
+    output: NDArray[int] = np.array(ori_output)
+    n = len(output)
+    half_window = int(window / 2)
+    cnt: NDArray[int] = np.zeros((4,), dtype=int)
+    l_index = 0
+    r_index = -1
+    for i in range(n):
+        if r_index - l_index + 1 == window and half_window < i < n - half_window:
+            cnt[ori_output[l_index]] -= 1
+            l_index += 1
+        while r_index - l_index + 1 < window and r_index + 1 < n:
+            r_index += 1
+            cnt[ori_output[r_index]] += 1
+        output[i] = np.argmax(cnt)
+    return output
+
+
 def _u_net_peak(data: NDArray[float]) -> NDArray[bool]:
     """QRS 提取"""
     # 提取U-net波群信息
-    x: NDArray[float] = data.copy()
-    wn1 = 1 / fs
-    b: NDArray[float]
-    a: NDArray[float]
-    # noinspection PyTupleAssignmentBalance
-    b, a = signal.butter(1, wn1, btype="high")
-    x = signal.filtfilt(b, a, x)
+    x = bsw(data)
     # 标准化
     x = (x - np.mean(x)) / np.std(x)
     x_tensor: Tensor = torch.tensor(x)
@@ -71,32 +86,12 @@ def _u_net_r_peak(is_qrs: NDArray[bool]) -> list[int]:
     return r_list
 
 
-def _output_sliding_voting_v2(ori_output: NDArray[int]) -> NDArray[int]:
-    window: Final[int] = 9
-
-    output: NDArray[int] = np.array(ori_output)
-    n = len(output)
-    half_window = int(window / 2)
-    cnt: NDArray[int] = np.zeros((4,), dtype=int)
-    l_index = 0
-    r_index = -1
-    for i in range(n):
-        if r_index - l_index + 1 == window and half_window < i < n - half_window:
-            cnt[ori_output[l_index]] -= 1
-            l_index += 1
-        while r_index - l_index + 1 < window and r_index + 1 < n:
-            r_index += 1
-            cnt[ori_output[r_index]] += 1
-        output[i] = np.argmax(cnt)
-    return output
-
-
 def get_beats(data: NDArray[float], ori_fs: int) -> list[Beat]:
     """切分心拍"""
-    data: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
+    data_resampled: NDArray[float] = signal.resample(data, len(data) * fs // ori_fs)
     len_u_net = 10 * 60 * fs
 
-    len_data: int = data.shape[0]
+    len_data: int = data_resampled.shape[0]
     beats: list[Beat] = []
     cur_s = 0
     while cur_s < len_data:
@@ -105,7 +100,7 @@ def get_beats(data: NDArray[float], ori_fs: int) -> list[Beat]:
         else:
             break
         is_qrs: NDArray[bool]
-        is_qrs = _u_net_peak(data[cur_s:now_s])
+        is_qrs = _u_net_peak(data_resampled[cur_s:now_s])
 
         r_list: list[int] = _u_net_r_peak(is_qrs)
         # 记录QRS波中点，以该点标识心拍     之后两边扩展
